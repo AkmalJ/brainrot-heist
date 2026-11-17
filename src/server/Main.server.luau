@@ -80,13 +80,14 @@ actors.Parent = Workspace
 -- correctly — characters auto-load on join, and the starter ground
 -- (Baseplate, SpawnLocation, terrain) is cleared so it cannot sit above
 -- the procedural world's ground plane and bury it. Runs before any
--- world building, so no manual place settings are ever needed.
+-- world building, so no manual place settings are ever needed. Terrain
+-- is a BasePart that cannot be Destroy()ed; it is emptied via Clear().
 --====================================================================--
 
 Players.CharacterAutoLoads = true
 Workspace.Terrain:Clear()
 for _, child in ipairs(Workspace:GetChildren()) do
-	if child:IsA("BasePart") then
+	if child:IsA("BasePart") and child ~= Workspace.Terrain then
 		child:Destroy()
 	end
 end
