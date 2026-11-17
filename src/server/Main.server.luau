@@ -6,20 +6,32 @@
 	This one script builds the entire world from plain parts (no external
 	assets) and then runs the whole game, server-authoritatively:
 
-	  * A winding lane crosses a bright meadow. Brainrot characters spawn at
-	    the gate and stroll it; walkers are moved by CFrame steps on a server
-	    loop, never by physics.
-	  * Buy a walker with its ProximityPrompt, carry it home over your head,
-	    and step onto your own base plot to bank it on a pad. Banked
-	    brainrots pay their owner cash every second, with a floating "+$".
+	  * A winding pastel-rainbow lane crosses a bright meadow. Brainrot
+	    characters spawn at the gate and stroll it; walkers are moved by
+	    CFrame steps on a server loop, never by physics.
+	  * Buy a walker with its ProximityPrompt, carry it home over your head
+	    (it slowly spins up there), and step onto your own base plot to bank
+	    it on a pad. Banked brainrots bob gently on their pads and pay
+	    their owner cash every second, with a floating "+$".
 	  * Other players can steal banked brainrots (1.5s hold prompt). A NPC
-	    BANDIT raids a random base every minute or so — body-check him (get
-	    close) on his escape run and he drops the loot as a loose carryable.
+	    BANDIT raids a random base every minute or so — a tall red beam
+	    marks him for the whole raid; body-check him (get close) on his
+	    escape run and he drops the loot as a loose carryable.
 	  * Every ~3 minutes a TSUNAMI washes down the lane: anything standing
 	    on the lane — walker, loose or carried — is washed away. Banked
-	    brainrots are safe.
+	    brainrots are safe. While the 10-second warning runs, the lane
+	    itself flashes red.
 	  * Rebirth (HUD button -> BrainrotRebirth remote) resets cash and
-	    collection for a permanent +50% income multiplier per rebirth.
+	    collection for a permanent +50% income multiplier per rebirth, and
+	    celebrates with a confetti burst over your plot.
+
+	The set dressing is themed, not filler: a welcome sign and a rules
+	board flank the spawn, the full 12-brainrot roster stands on a
+	showcase row of pedestals beside it, and three oversized monuments
+	along the lane — a giant Cosmic Cappuccino, DJ Banana and Cactus
+	Cowboy — advertise the roster's stars. Fences and lamp posts shadow
+	the lane; every base plot wears a Neon trim frame, an awning over its
+	owner sign and a treasure chest in its back corner.
 
 	No DataStore: a session is a fresh heist. Cash and rebirths live in
 	leaderstats; the client HUD reads those plus the Carrying / IncomePerSec
@@ -54,13 +66,14 @@ local function notifyAll(text, kind)
 end
 
 --====================================================================--
--- Look of the day: bright noon, soft shadows.
+-- Look of the day: luminous noon, soft shadows. Set in code so every
+-- place that hosts the game gets the same bright daytime look.
 --====================================================================--
 
-Lighting.ClockTime = 13.5
-Lighting.Brightness = 3
-Lighting.Ambient = Color3.fromRGB(165, 175, 195)
-Lighting.OutdoorAmbient = Color3.fromRGB(165, 175, 195)
+Lighting.ClockTime = 14
+Lighting.Brightness = 3.5
+Lighting.Ambient = Color3.fromRGB(190, 198, 222)
+Lighting.OutdoorAmbient = Color3.fromRGB(190, 198, 222)
 Lighting.GlobalShadows = true
 
 --====================================================================--
@@ -178,6 +191,12 @@ for i = 1, #LANE_POINTS - 1 do
 	LANE_LENGTH += len
 end
 
+-- cumLen[i] = distance along the lane from its start to LANE_POINTS[i].
+local cumLen = { 0 }
+for i, seg in ipairs(laneSegs) do
+	cumLen[i + 1] = cumLen[i] + seg.len
+end
+
 -- Point and direction at distance s along the lane (the tsunami rides this).
 local function sampleLane(s)
 	if s <= 0 then
@@ -222,12 +241,22 @@ end
 makePart(world, "Meadow", Vector3.new(440, 2, 440), CFrame.new(0, -0.98, 0),
 	Color3.fromRGB(106, 190, 74), Enum.Material.Grass)
 
--- The lane itself: one sandy slab per segment, overlapping at the joints.
+-- The lane itself: one pastel-rainbow slab per segment, the hues cycling
+-- along the lane's length. The slabs are kept in a table so the tsunami
+-- warning can flash them red (and restore them afterwards).
+local LANE_PASTELS = {
+	Color3.fromRGB(255, 179, 186), Color3.fromRGB(255, 223, 186), Color3.fromRGB(255, 255, 186),
+	Color3.fromRGB(186, 255, 201), Color3.fromRGB(186, 225, 255), Color3.fromRGB(221, 186, 255),
+	Color3.fromRGB(186, 255, 240),
+}
+local laneSlabs = {}
 for i, seg in ipairs(laneSegs) do
 	local mid = (seg.a + seg.b) / 2
 	local cf = CFrame.lookAt(Vector3.new(mid.X, 0.05, mid.Z), Vector3.new(seg.b.X, 0.05, seg.b.Z))
-	makePart(world, "Lane" .. i, Vector3.new(11, 0.06, seg.len + 10), cf,
-		Color3.fromRGB(232, 205, 150), Enum.Material.Sand)
+	local slabColor = LANE_PASTELS[((i - 1) % #LANE_PASTELS) + 1]
+	local slab = makePart(world, "Lane" .. i, Vector3.new(11, 0.06, seg.len + 10), cf,
+		slabColor, Enum.Material.SmoothPlastic)
+	table.insert(laneSlabs, { part = slab, color = slabColor, material = Enum.Material.SmoothPlastic })
 end
 
 -- Gates at both ends of the lane.
@@ -250,7 +279,8 @@ buildGate(LANE_POINTS[1], Vector3.new(-0.707, 0, 0.707), "BRAINROTS ENTER",
 buildGate(LANE_POINTS[#LANE_POINTS], Vector3.new(0.707, 0, 0.707), "LANE EXIT",
 	"Mind the BANDIT past here...", Color3.fromRGB(90, 90, 100))
 
--- The great arch over the middle, signed on both faces, brain on top.
+-- The great arch over the middle, signed on both faces, brain on top,
+-- with six Neon rainbow stripes across the front of its beam.
 do
 	local arch = Instance.new("Folder")
 	arch.Name = "Arch"
@@ -260,6 +290,15 @@ do
 	local beam = makePart(arch, "Beam", Vector3.new(27, 4.5, 3.5), CFrame.new(0, 13.75, 0), Color3.fromRGB(255, 170, 60))
 	attachSign(beam, Enum.NormalId.Front, "BRAINROT HEIST", nil, Color3.fromRGB(255, 255, 255), 64)
 	attachSign(beam, Enum.NormalId.Back, "BRAINROT HEIST", nil, Color3.fromRGB(255, 255, 255), 64)
+	local stripeColors = {
+		Color3.fromRGB(255, 90, 90), Color3.fromRGB(255, 160, 60), Color3.fromRGB(255, 230, 90),
+		Color3.fromRGB(110, 220, 110), Color3.fromRGB(90, 170, 255), Color3.fromRGB(190, 120, 255),
+	}
+	for i, sc in ipairs(stripeColors) do
+		local stripe = makePart(arch, "Stripe", Vector3.new(3.6, 4.7, 0.3),
+			CFrame.new(-11.25 + (i - 1) * 4.5, 13.75, -1.9), sc, Enum.Material.Neon)
+		stripe.CanCollide = false
+	end
 	local brain = makePart(arch, "Brain", Vector3.new(6.5, 5.5, 6.5), CFrame.new(0, 18.8, 0), Color3.fromRGB(255, 150, 190))
 	brain.Shape = Enum.PartType.Ball
 	brain.CanCollide = false
@@ -283,7 +322,44 @@ do
 	spawn.Parent = world
 end
 
--- The richest-collectors board, north of the arch, facing spawn.
+-- The hero vista at spawn: a big welcome sign on one side and a rules
+-- board on the other, both facing the arriving player (and the camera
+-- of the cover screenshot). The game's name and its whole loop, readable
+-- from a few studs away, in the very first frame.
+do
+	local welcome = Instance.new("Folder")
+	welcome.Name = "Welcome"
+	welcome.Parent = world
+	makeSign(welcome, "WelcomeSign", Vector3.new(16, 6.5, 1), Vector3.new(-9.5, 4.6, 28.5),
+		Vector3.new(-9.5, 4.6, 40), Color3.fromRGB(255, 120, 160),
+		"BRAINROT HEIST", "★ BUY • BANK • STEAL • REBIRTH ★", Color3.fromRGB(255, 255, 255), 52)
+	local rules = makePart(welcome, "RulesBoard", Vector3.new(16, 7.6, 1),
+		CFrame.lookAt(Vector3.new(9.5, 4.9, 28.5), Vector3.new(9.5, 4.9, 40)), Color3.fromRGB(30, 34, 52))
+	local rgui = Instance.new("SurfaceGui")
+	rgui.Face = Enum.NormalId.Front
+	rgui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	rgui.PixelsPerStud = 40
+	rgui.Parent = rules
+	makeLabel(rgui, "Title", "HOW TO PLAY", UDim2.fromScale(1, 0.2), UDim2.fromScale(0, 0.02),
+		Enum.Font.FredokaOne, 40, Color3.fromRGB(255, 205, 60))
+	local ruleLines = {
+		"BUY brainrots from the lane",
+		"BANK them on your plot to earn",
+		"STEAL from rival plots",
+		"REBIRTH for +50% income",
+	}
+	for i, line in ipairs(ruleLines) do
+		makeLabel(rgui, "Rule" .. i, line, UDim2.fromScale(1, 0.15), UDim2.fromScale(0, 0.26 + (i - 1) * 0.17),
+			Enum.Font.GothamBold, 26, Color3.fromRGB(255, 255, 255))
+	end
+	for _, sx in ipairs({ -16.5, -2.5, 2.5, 16.5 }) do
+		makePart(welcome, "Post", Vector3.new(0.8, 3.4, 0.8), CFrame.new(sx, 1.7, 27.7),
+			Color3.fromRGB(120, 85, 50))
+	end
+end
+
+-- The richest-collectors board, north of the arch, facing spawn,
+-- framed in gold Neon trim.
 local boardLines = {}
 do
 	local board = Instance.new("Folder")
@@ -306,10 +382,20 @@ do
 			UDim2.fromScale(1, 0.15), UDim2.fromScale(0, 0.22 + (i - 1) * 0.155),
 			Enum.Font.GothamBold, 30, Color3.fromRGB(235, 240, 255))
 	end
+	local trimColor = Color3.fromRGB(255, 205, 60)
+	local function boardTrim(name, size, pos)
+		local t = makePart(board, name, size, CFrame.new(pos), trimColor, Enum.Material.Neon)
+		t.CanCollide = false
+	end
+	boardTrim("TrimT", Vector3.new(24.2, 0.55, 0.5), Vector3.new(0, 14.4, -26.4))
+	boardTrim("TrimB", Vector3.new(24.2, 0.55, 0.5), Vector3.new(0, 2.6, -26.4))
+	boardTrim("TrimL", Vector3.new(0.55, 12.4, 0.5), Vector3.new(-11.85, 8.5, -26.4))
+	boardTrim("TrimR", Vector3.new(0.55, 12.4, 0.5), Vector3.new(11.85, 8.5, -26.4))
 end
 
 --====================================================================--
--- The 8 base plots in a ring. Each: floor, flat border, 6 pads, a sign.
+-- The 8 base plots in a ring. Each: floor, flat border, Neon trim,
+-- 6 pads, a signed owner board with an awning, a treasure chest.
 --====================================================================--
 
 local PLOT_RADIUS = 122
@@ -342,6 +428,16 @@ for i = 1, 8 do
 	makePart(folder, "BorderE", Vector3.new(1.4, 0.15, 38), CFrame.new(cx + 18.3, 0.62, cz), borderColor)
 	makePart(folder, "BorderW", Vector3.new(1.4, 0.15, 38), CFrame.new(cx - 18.3, 0.62, cz), borderColor)
 
+	-- A glowing Neon frame in the plot's own colour around the floor.
+	local function plotTrim(name, size, pos)
+		local t = makePart(folder, name, size, CFrame.new(pos), color, Enum.Material.Neon)
+		t.CanCollide = false
+	end
+	plotTrim("TrimN", Vector3.new(39.4, 0.4, 0.8), Vector3.new(cx, 0.75, cz - 19.3))
+	plotTrim("TrimS", Vector3.new(39.4, 0.4, 0.8), Vector3.new(cx, 0.75, cz + 19.3))
+	plotTrim("TrimE", Vector3.new(0.8, 0.4, 39.4), Vector3.new(cx + 19.3, 0.75, cz))
+	plotTrim("TrimW", Vector3.new(0.8, 0.4, 39.4), Vector3.new(cx - 19.3, 0.75, cz))
+
 	local pads = {}
 	for _, dx in ipairs({ -11.5, 0, 11.5 }) do
 		for _, dz in ipairs({ -8.5, 8.5 }) do
@@ -361,6 +457,20 @@ for i = 1, 8 do
 		Color3.fromRGB(120, 85, 50))
 	local _, signTitle, signSub = makeSign(folder, "Sign", Vector3.new(19, 6.5, 0.8),
 		signPos, Vector3.new(0, 5.2, 0), color, "EMPTY BASE", "Waiting for a collector...", Color3.fromRGB(255, 255, 255), 42)
+
+	-- An angled awning in the plot colour shading the owner sign.
+	local awningPos = signPos + Vector3.new(0, 4.1, 0) - toCenter * 1.0
+	local awning = makePart(folder, "Awning", Vector3.new(20.5, 0.5, 5.5),
+		CFrame.lookAt(awningPos, Vector3.new(0, awningPos.Y, 0)) * CFrame.Angles(math.rad(-16), 0, 0), color)
+	awning.CanCollide = false
+
+	-- A treasure chest in the back corner: this base is worth robbing.
+	local sideVec = Vector3.new(-toCenter.Z, 0, toCenter.X)
+	local chestPos = center - toCenter * 13.5 + sideVec * 13.5
+	local chestCf = CFrame.lookAt(Vector3.new(chestPos.X, 1.65, chestPos.Z), Vector3.new(0, 1.65, 0))
+	makePart(folder, "Chest", Vector3.new(3.6, 2.2, 2.8), chestCf, Color3.fromRGB(121, 85, 58))
+	makePart(folder, "ChestLid", Vector3.new(3.8, 0.55, 3.0), chestCf + Vector3.new(0, 1.35, 0),
+		Color3.fromRGB(255, 190, 40))
 
 	table.insert(plots, {
 		index = i,
@@ -426,65 +536,240 @@ do
 end
 
 --====================================================================--
--- Set dressing: trees on the ring, flowers off the lane, lazy clouds.
+-- Set dressing: fences and lamps shadow the lane, trees and flower
+-- bands fill the meadow, clouds drift overhead. The scatter is driven
+-- by a small seeded generator (Park–Miller), so the meadow lays itself
+-- out identically on every server — no dice at build time.
 --====================================================================--
+
+-- The three tier monuments stand at these spots; scatter keeps clear.
+local MONUMENT_SPOTS = {
+	Vector3.new(64, 0, -52), -- the giant Cosmic Cappuccino
+	Vector3.new(-52, 0, 8), -- the giant DJ Banana
+	Vector3.new(30, 0, 52), -- the giant Cactus Cowboy
+}
+
+local rngState = 123456789
+local function rand()
+	rngState = (rngState * 48271) % 2147483647
+	return rngState / 2147483647
+end
+
+local function nearMonument(x, z, dist)
+	for _, spot in ipairs(MONUMENT_SPOTS) do
+		if math.sqrt((x - spot.X) ^ 2 + (z - spot.Z) ^ 2) < dist then
+			return true
+		end
+	end
+	return false
+end
 
 do
 	local decor = Instance.new("Folder")
 	decor.Name = "Decor"
 	decor.Parent = world
 
+	-- Fences: white posts and two warm-brown rails shadowing both sides
+	-- of the lane polyline, about 7 studs off its centreline.
+	local postColor = Color3.fromRGB(248, 246, 240)
+	local railColor = Color3.fromRGB(146, 104, 58)
+	for _, seg in ipairs(laneSegs) do
+		local dir = (seg.b - seg.a).Unit
+		local side = Vector3.new(-dir.Z, 0, dir.X)
+		for _, sgn in ipairs({ -1, 1 }) do
+			local off = side * (7 * sgn)
+			local mid = (seg.a + seg.b) / 2 + off
+			for _, h in ipairs({ 1.05, 1.95 }) do
+				makePart(decor, "Rail", Vector3.new(0.3, 0.35, seg.len),
+					CFrame.lookAt(Vector3.new(mid.X, h, mid.Z), Vector3.new(mid.X + dir.X, h, mid.Z + dir.Z)),
+					railColor)
+			end
+			for d = 6, seg.len - 3, 12 do
+				local p = seg.a + dir * d + off
+				makePart(decor, "FencePost", Vector3.new(0.55, 2.6, 0.55), CFrame.new(p.X, 1.3, p.Z), postColor)
+			end
+		end
+	end
+
+	-- Lamp posts alternating sides along the lane, warm Neon globes.
+	for i = 0, 9 do
+		local s = LANE_LENGTH * (i + 0.5) / 10
+		local pos, dir = sampleLane(s)
+		local side = Vector3.new(-dir.Z, 0, dir.X) * (i % 2 == 0 and 8.5 or -8.5)
+		local px, pz = pos.X + side.X, pos.Z + side.Z
+		makePart(decor, "LampPost", Vector3.new(0.45, 5.6, 0.45), CFrame.new(px, 2.8, pz),
+			Color3.fromRGB(45, 45, 58))
+		local globe = makePart(decor, "LampGlobe", Vector3.new(1.5, 1.5, 1.5), CFrame.new(px, 6.2, pz),
+			Color3.fromRGB(255, 221, 130), Enum.Material.Neon)
+		globe.Shape = Enum.PartType.Ball
+		globe.CanCollide = false
+	end
+
+	-- Trees: a fixed ring, plus a seeded scatter kept off the lane, the
+	-- plots, the spawn vista and the monuments.
 	local trunkColor = Color3.fromRGB(121, 85, 58)
 	local leafColors = { Color3.fromRGB(64, 160, 70), Color3.fromRGB(84, 180, 80), Color3.fromRGB(52, 140, 64) }
+	local function buildTree(tx, tz, leafIdx)
+		local trunk = makePart(decor, "Trunk", Vector3.new(5, 1.7, 1.7),
+			CFrame.new(tx, 2.5, tz) * CFrame.Angles(0, 0, math.rad(90)), trunkColor)
+		trunk.Shape = Enum.PartType.Cylinder
+		local leafColor = leafColors[(leafIdx % #leafColors) + 1]
+		local crown = makePart(decor, "Crown", Vector3.new(7.5, 6.5, 7.5), CFrame.new(tx, 7.6, tz), leafColor)
+		crown.Shape = Enum.PartType.Ball
+		crown.CanCollide = false
+		local top = makePart(decor, "CrownTop", Vector3.new(5, 4.4, 5), CFrame.new(tx + 1.2, 10.2, tz), leafColor)
+		top.Shape = Enum.PartType.Ball
+		top.CanCollide = false
+	end
 	for k = 0, 13 do
 		local a = math.rad(12 + k * (360 / 14))
 		local tx, tz = math.cos(a) * 96, math.sin(a) * 96
 		if distToLane(tx, tz) > 11 and not plotAt(tx, tz) then
-			local trunk = makePart(decor, "Trunk", Vector3.new(5, 1.7, 1.7),
-				CFrame.new(tx, 2.5, tz) * CFrame.Angles(0, 0, math.rad(90)), trunkColor)
-			trunk.Shape = Enum.PartType.Cylinder
-			local leafColor = leafColors[(k % #leafColors) + 1]
-			local crown = makePart(decor, "Crown", Vector3.new(7.5, 6.5, 7.5), CFrame.new(tx, 7.6, tz), leafColor)
-			crown.Shape = Enum.PartType.Ball
-			crown.CanCollide = false
-			local top = makePart(decor, "CrownTop", Vector3.new(5, 4.4, 5), CFrame.new(tx + 1.2, 10.2, tz), leafColor)
-			top.Shape = Enum.PartType.Ball
-			top.CanCollide = false
+			buildTree(tx, tz, k)
+		end
+	end
+	local scattered = 0
+	local treeTries = 0
+	while scattered < 24 and treeTries < 500 do
+		treeTries += 1
+		local a = rand() * math.pi * 2
+		local r = 26 + rand() * 168
+		local tx, tz = math.cos(a) * r, math.sin(a) * r
+		local clear = distToLane(tx, tz) >= 16
+			and not plotAt(tx, tz)
+			and math.sqrt(tx ^ 2 + (tz - 34) ^ 2) >= 30
+			and math.sqrt((tx - 110) ^ 2 + (tz - 100) ^ 2) >= 15
+			and math.sqrt((tx - 34) ^ 2 + (tz - 34) ^ 2) >= 11
+			and math.sqrt(tx ^ 2 + (tz + 27) ^ 2) >= 13
+			and not nearMonument(tx, tz, 13)
+		if clear then
+			for _, plot in ipairs(plots) do
+				if math.sqrt((tx - plot.center.X) ^ 2 + (tz - plot.center.Z) ^ 2) < 26 then
+					clear = false
+					break
+				end
+			end
+		end
+		if clear then
+			buildTree(tx, tz, scattered)
+			scattered += 1
 		end
 	end
 
-	local flowerColors = {
-		Color3.fromRGB(255, 120, 180), Color3.fromRGB(255, 220, 90), Color3.fromRGB(255, 255, 255),
-		Color3.fromRGB(190, 140, 255), Color3.fromRGB(255, 150, 80),
+	-- Flower dots: 60 tiny bright cylinders in four colour bands, one
+	-- band per quadrant of the meadow, kept off the lane and the vista.
+	local bandColors = {
+		{ Color3.fromRGB(255, 120, 180), Color3.fromRGB(255, 160, 200) },
+		{ Color3.fromRGB(255, 220, 90), Color3.fromRGB(255, 240, 150) },
+		{ Color3.fromRGB(255, 255, 255), Color3.fromRGB(190, 140, 255) },
+		{ Color3.fromRGB(255, 150, 80), Color3.fromRGB(255, 110, 110) },
 	}
 	local placed = 0
-	local tries = 0
-	while placed < 80 and tries < 300 do
-		tries += 1
-		local a = math.random() * math.pi * 2
-		local r = 16 + math.random() * 158
+	local flowerTries = 0
+	while placed < 60 and flowerTries < 600 do
+		flowerTries += 1
+		local band = (placed % 4) + 1
+		local a = (band - 1) * math.pi / 2 + rand() * math.pi / 2
+		local r = 15 + rand() * 172
 		local fx, fz = math.cos(a) * r, math.sin(a) * r
-		local nearSpawn = math.sqrt(fx ^ 2 + (fz - 34) ^ 2) < 9
-		if distToLane(fx, fz) > 8 and not plotAt(fx, fz) and not nearSpawn then
-			local f = makePart(decor, "Flower", Vector3.new(0.75, 0.75, 0.75),
-				CFrame.new(fx, 0.35, fz), flowerColors[math.random(1, #flowerColors)])
-			f.Shape = Enum.PartType.Ball
+		local nearSpawn = math.sqrt(fx ^ 2 + (fz - 34) ^ 2) < 27
+		if distToLane(fx, fz) > 9 and not plotAt(fx, fz) and not nearSpawn and not nearMonument(fx, fz, 10) then
+			local f = makePart(decor, "Flower", Vector3.new(0.3, 0.95, 0.95),
+				CFrame.new(fx, 0.22, fz) * CFrame.Angles(0, 0, math.rad(90)),
+				bandColors[band][(placed % 2) + 1])
+			f.Shape = Enum.PartType.Cylinder
 			f.CanCollide = false
 			placed += 1
 		end
 	end
 
+	-- Clouds: six lazy clusters of flat white boxes, high above it all.
 	for i = 1, 6 do
-		local cx = -140 + i * 44 + math.random(-8, 8)
-		local cz = -120 + math.random(0, 240)
-		local cy = 56 + math.random(0, 14)
+		local cx = -150 + rand() * 300
+		local cz = -150 + rand() * 300
+		local cy = 56 + rand() * 14
 		for j = 1, 3 do
-			local c = makePart(decor, "Cloud", Vector3.new(16 + j * 5, 3.5, 10 + j * 2),
-				CFrame.new(cx + (j - 2) * 9, cy + (j % 2), cz), Color3.fromRGB(255, 255, 255))
-			c.Shape = Enum.PartType.Ball
+			local c = makePart(decor, "Cloud", Vector3.new(15 + j * 4, 2.6, 9 + j * 1.5),
+				CFrame.new(cx + (j - 2) * 8.5, cy + (j % 2) * 1.2, cz + (j - 2) * 2),
+				Color3.fromRGB(255, 255, 255))
 			c.CanCollide = false
 		end
 	end
+end
+
+--====================================================================--
+-- Tier monuments: three oversized statues along the lane, themed on
+-- the roster's stars — simple bold shapes, each with a floating sign.
+--====================================================================--
+
+do
+	local monuments = Instance.new("Folder")
+	monuments.Name = "Monuments"
+	monuments.Parent = world
+	local function monumentPart(name, size, cf, color, shape, material)
+		local p = makePart(monuments, name, size, cf, color, material)
+		if shape then
+			p.Shape = shape
+		end
+		p.CanCollide = false
+		return p
+	end
+	local flat = CFrame.Angles(0, 0, math.rad(90)) -- stands a cylinder upright
+
+	-- (1) The giant Cosmic Cappuccino: saucer, cup, coffee, foam, and a
+	-- glowing Neon swirl ring tipped over the top.
+	local spot = MONUMENT_SPOTS[1]
+	monumentPart("Saucer", Vector3.new(0.8, 11, 11), CFrame.new(spot.X, 0.4, spot.Z) * flat,
+		Color3.fromRGB(248, 246, 240), Enum.PartType.Cylinder)
+	monumentPart("Cup", Vector3.new(6.5, 8, 8), CFrame.new(spot.X, 4.05, spot.Z) * flat,
+		Color3.fromRGB(236, 214, 178), Enum.PartType.Cylinder)
+	monumentPart("Coffee", Vector3.new(0.5, 7, 7), CFrame.new(spot.X, 7.35, spot.Z) * flat,
+		Color3.fromRGB(110, 70, 40), Enum.PartType.Cylinder)
+	monumentPart("Foam", Vector3.new(6.5, 3.2, 6.5), CFrame.new(spot.X, 8.6, spot.Z),
+		Color3.fromRGB(255, 252, 245), Enum.PartType.Ball)
+	monumentPart("SwirlRing", Vector3.new(0.45, 10.5, 10.5),
+		CFrame.new(spot.X, 10.2, spot.Z) * flat * CFrame.Angles(math.rad(14), 0, 0),
+		Color3.fromRGB(190, 110, 255), Enum.PartType.Cylinder, Enum.Material.Neon)
+	monumentPart("Handle", Vector3.new(1.2, 3.6, 1.2), CFrame.new(spot.X + 4.9, 4.2, spot.Z),
+		Color3.fromRGB(236, 214, 178))
+	makeSign(monuments, "Sign", Vector3.new(14, 3.6, 0.6), spot + Vector3.new(0, 13.8, 0),
+		Vector3.new(50, 13.8, -42), Color3.fromRGB(147, 51, 234),
+		"COSMIC CAPPUCCINO", "Brainrot God • $150K • +$5.2K/s", Color3.fromRGB(255, 255, 255), 32)
+
+	-- (2) The giant DJ Banana: a great yellow curve wearing headphones.
+	spot = MONUMENT_SPOTS[2]
+	monumentPart("BananaBody", Vector3.new(5.5, 12, 5.5),
+		CFrame.new(spot.X, 6.2, spot.Z) * CFrame.Angles(0, 0, math.rad(8)),
+		Color3.fromRGB(255, 213, 79), Enum.PartType.Ball)
+	monumentPart("Stem", Vector3.new(1.3, 2.4, 1.3), CFrame.new(spot.X - 0.9, 12.7, spot.Z),
+		Color3.fromRGB(90, 60, 30))
+	monumentPart("PhoneBand", Vector3.new(8.4, 0.7, 1.1), CFrame.new(spot.X, 11.3, spot.Z),
+		Color3.fromRGB(40, 40, 48))
+	monumentPart("PhoneCupL", Vector3.new(1.1, 3.4, 3.4), CFrame.new(spot.X - 3.6, 10.4, spot.Z),
+		Color3.fromRGB(40, 40, 48), Enum.PartType.Cylinder)
+	monumentPart("PhoneCupR", Vector3.new(1.1, 3.4, 3.4), CFrame.new(spot.X + 3.6, 10.4, spot.Z),
+		Color3.fromRGB(40, 40, 48), Enum.PartType.Cylinder)
+	makeSign(monuments, "Sign", Vector3.new(12, 3.6, 0.6), spot + Vector3.new(0, 15, 0),
+		Vector3.new(-63, 15, 13), Color3.fromRGB(255, 190, 40),
+		"DJ BANANA", "Common • $75 • +$2/s", Color3.fromRGB(255, 255, 255), 32)
+
+	-- (3) The giant Cactus Cowboy: green barrel arms and a wide hat.
+	spot = MONUMENT_SPOTS[3]
+	local cactusGreen = Color3.fromRGB(46, 160, 80)
+	local hatBrown = Color3.fromRGB(146, 104, 58)
+	monumentPart("CactusBody", Vector3.new(11, 5.5, 5.5), CFrame.new(spot.X, 5.5, spot.Z) * flat,
+		cactusGreen, Enum.PartType.Cylinder)
+	monumentPart("ArmL", Vector3.new(5.5, 1.7, 1.7), CFrame.new(spot.X - 4.4, 6.8, spot.Z) * flat,
+		cactusGreen, Enum.PartType.Cylinder)
+	monumentPart("ArmR", Vector3.new(5.5, 1.7, 1.7), CFrame.new(spot.X + 4.4, 6.8, spot.Z) * flat,
+		cactusGreen, Enum.PartType.Cylinder)
+	monumentPart("HatBrim", Vector3.new(0.5, 9.5, 9.5), CFrame.new(spot.X, 11.2, spot.Z) * flat,
+		hatBrown, Enum.PartType.Cylinder)
+	monumentPart("HatTop", Vector3.new(2.4, 4.2, 4.2), CFrame.new(spot.X, 12.6, spot.Z) * flat,
+		hatBrown, Enum.PartType.Cylinder)
+	makeSign(monuments, "Sign", Vector3.new(12, 3.6, 0.6), spot + Vector3.new(0, 15.2, 0),
+		Vector3.new(48, 15.2, 30), cactusGreen,
+		"CACTUS COWBOY", "Rare • $800 • +$24/s", Color3.fromRGB(255, 255, 255), 32)
 end
 
 --====================================================================--
@@ -588,21 +873,28 @@ local function moveToward(ent, target, speed, dt, bobAmp)
 end
 
 -- Ride a brainrot over a holder's head (player HRP or the bandit's root).
+-- It slowly spins up there — a carried prize should read as CARRIED in
+-- any still frame, and motion sells it in motion.
 local function carryPosition(ent, holderRoot, height)
 	local bob = math.sin(os.clock() * 3 + ent.bobPhase) * 0.15
 	local pos = holderRoot.Position + Vector3.new(0, height + bob, 0)
-	ent.model:SetPrimaryPartCFrame(CFrame.new(pos) * holderRoot.CFrame.Rotation)
+	local spin = os.clock() * 1.3 + ent.bobPhase
+	ent.model:SetPrimaryPartCFrame(CFrame.new(pos) * CFrame.Angles(0, spin, 0))
 	ent.pos = ent.root.Position
 end
 
 --====================================================================--
 -- The character factory: one blocky brainrot, built from its definition.
 -- Model space: origin at the ground point, front is -Z, root at y 0.25.
+-- Models grow with their tier: scale 1.0 at Common up to ~1.35 at
+-- Brainrot God, on top of each character's own scale. Epic and above
+-- wear a gold crown; Legendary and above float a Neon halo.
 --====================================================================--
 
 local function buildCharacterModel(def, mutation)
-	local s = def.scale or 1
 	local tier = Brainrots.Tiers[def.tier]
+	local tierScale = 1 + (tier.order - 1) * (0.35 / 6)
+	local s = (def.scale or 1) * tierScale
 	local bodyColor = def.body
 	if mutation then
 		bodyColor = bodyColor:Lerp(mutation.color, 0.45)
@@ -730,6 +1022,24 @@ local function buildCharacterModel(def, mutation)
 		end
 	end
 
+	-- Tier regalia, worn over whatever the character already has: Epic
+	-- and above get a gold crown (the Golden Goose's own crown counts);
+	-- Legendary and above float a Neon halo in their tier colour.
+	if tier.order >= 4 and acc ~= "Crown" then
+		local gold = Color3.fromRGB(255, 190, 40)
+		add("TierCrown", v3(0.32, 1.5, 1.5), at(0, 4.42, 0) * CFrame.Angles(0, 0, math.rad(90)), gold, Enum.PartType.Cylinder)
+		for _, dx in ipairs({ -0.53, 0.53 }) do
+			for _, dz in ipairs({ -0.53, 0.53 }) do
+				add("TierCrownPoint", v3(0.3, 0.55, 0.3), at(dx, 4.78, dz), gold)
+			end
+		end
+	end
+	if tier.order >= 5 then
+		local halo = add("Halo", v3(0.16, 2.7, 2.7), at(0, 6.3, 0) * CFrame.Angles(0, 0, math.rad(90)),
+			tier.beam, Enum.PartType.Cylinder, Enum.Material.Neon)
+		halo.Transparency = 0.25
+	end
+
 	-- Rare and above wear a pillar of light in their tier colour.
 	if tier.order >= 3 then
 		local beamHeight = 9 + tier.order
@@ -737,10 +1047,28 @@ local function buildCharacterModel(def, mutation)
 		beam.Transparency = 0.5
 	end
 
-	-- Sparkles for the shiny ones: Gold, Diamond, and the God.
-	if (mutation and (mutation.name == "Gold" or mutation.name == "Diamond")) or def.tier == "Brainrot God" then
+	-- Mutated walkers sparkle: a ParticleEmitter on the root, tinted by
+	-- the mutation, so Gold, Diamond and Rainbow all announce themselves.
+	if mutation then
+		local emitter = Instance.new("ParticleEmitter")
+		emitter.Color = ColorSequence.new(mutation.color)
+		emitter.Size = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0.28),
+			NumberSequenceKeypoint.new(1, 0),
+		})
+		emitter.Lifetime = NumberRange.new(0.5, 1.0)
+		emitter.Rate = 14
+		emitter.Speed = NumberRange.new(0.6, 1.4)
+		emitter.SpreadAngle = Vector2.new(180, 180)
+		emitter.LightEmission = 1
+		emitter.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+		emitter.Parent = root
+	end
+
+	-- The God sparkles even unmutated.
+	if def.tier == "Brainrot God" then
 		local sparkles = Instance.new("Sparkles")
-		sparkles.SparkleColor = mutation and mutation.color or tier.beam
+		sparkles.SparkleColor = tier.beam
 		sparkles.Parent = bodyPart
 	end
 
@@ -768,16 +1096,34 @@ end
 -- Entity lifecycle
 --====================================================================--
 
-local function spawnWalker(atPoint)
+local mutationByName = {}
+for _, m in ipairs(Brainrots.Mutations) do
+	mutationByName[m.name] = m
+end
+
+-- Spawn a walker at distance s along the lane. forcedMutation overrides
+-- the mutation roll (the opening burst guarantees its sparkles).
+local function spawnWalkerAt(s, forcedMutation)
 	local def, mutation = Brainrots.Roll()
+	if forcedMutation then
+		mutation = forcedMutation
+	end
 	local model = buildCharacterModel(def, mutation)
 	model.Parent = actors
-	local startPos = LANE_POINTS[atPoint or 1]
+	local startPos = sampleLane(math.clamp(s, 0, LANE_LENGTH))
+	local wp = #LANE_POINTS
+	for i = 2, #LANE_POINTS do
+		if cumLen[i] > s then
+			wp = i
+			break
+		end
+	end
 	local ent = {
 		def = def, mutation = mutation, model = model, root = model.PrimaryPart,
 		state = "lane", owner = nil, carrier = nil, stolenFrom = nil,
 		pad = nil, prompt = nil, floaterGui = nil, floaterLabel = nil, floatT = 0,
-		wp = math.min((atPoint or 1) + 1, #LANE_POINTS),
+		idleCFrame = nil,
+		wp = wp,
 		pos = Vector3.new(startPos.X, ROOT_Y, startPos.Z),
 		baseY = ROOT_Y, bobPhase = math.random() * 6.28, stealGuardUntil = 0,
 	}
@@ -785,6 +1131,10 @@ local function spawnWalker(atPoint)
 	faceToward(ent, LANE_POINTS[ent.wp])
 	setPrompt(ent, "buy")
 	return ent
+end
+
+local function spawnWalker(atPoint)
+	return spawnWalkerAt(cumLen[atPoint or 1] or 0)
 end
 
 setPrompt = function(ent, kind)
@@ -850,6 +1200,7 @@ startCarry = function(ent, player)
 	ent.carrier = player
 	ent.owner = player
 	ent.stolenFrom = nil
+	ent.idleCFrame = nil
 	setPrompt(ent, nil)
 	if pd then
 		pd.carrying = ent
@@ -909,6 +1260,7 @@ local function bankEntity(ent, player, pd)
 	ent.baseY = freePad.pos.Y + 0.25
 	ent.pos = Vector3.new(freePad.pos.X, ent.baseY, freePad.pos.Z)
 	faceToward(ent, Vector3.new(0, ent.baseY, 0))
+	ent.idleCFrame = ent.model:GetPrimaryPartCFrame() -- the banked bob orbits this pose
 	freePad.part.Color = Brainrots.Tiers[ent.def.tier].color
 	pd.carrying = nil
 	local cv = player:FindFirstChild("Carrying")
@@ -980,6 +1332,42 @@ onPrompt = function(ent, player)
 end
 
 --====================================================================--
+-- The SHOWCASE ROW: the whole roster on pedestals in two arcs beside
+-- the spawn, each brainrot a static build from the same factory, with
+-- its nameplate overhead and a price board in front. The full
+-- collection in a single frame — the roster IS the pitch.
+--====================================================================--
+
+do
+	local showcase = Instance.new("Folder")
+	showcase.Name = "Showcase"
+	showcase.Parent = world
+	local spawnPoint = Vector3.new(0, 0, 34)
+	local anglesA = { 200, 212, 224, 236, 248, 260 } -- left arc, roster 1-6
+	local anglesB = { 280, 292, 304, 316, 328, 340 } -- right arc, roster 7-12
+	for idx, def in ipairs(Brainrots.Characters) do
+		local deg = idx <= 6 and anglesA[idx] or anglesB[idx - 6]
+		local a = math.rad(deg)
+		local px = math.cos(a) * 22
+		local pz = 34 + math.sin(a) * 22
+		local tier = Brainrots.Tiers[def.tier]
+		local ped = makePart(showcase, "Pedestal", Vector3.new(1.2, 3.4, 3.4),
+			CFrame.new(px, 0.6, pz) * CFrame.Angles(0, 0, math.rad(90)), tier.color)
+		ped.Shape = Enum.PartType.Cylinder
+		local model = buildCharacterModel(def, nil)
+		model.Parent = showcase
+		model:SetPrimaryPartCFrame(CFrame.lookAt(
+			Vector3.new(px, 1.45, pz), Vector3.new(spawnPoint.X, 1.45, spawnPoint.Z)))
+		local toSpawn = Vector3.new(spawnPoint.X - px, 0, spawnPoint.Z - pz).Unit
+		local signPos = Vector3.new(px, 1.5, pz) + toSpawn * 2.9
+		makeSign(showcase, "PriceSign", Vector3.new(5.4, 2.5, 0.35), signPos,
+			spawnPoint + Vector3.new(0, 1.5, 0), tier.color, def.name,
+			Brainrots.FormatMoney(def.cost) .. " • +" .. Brainrots.FormatMoney(def.income) .. "/s",
+			Color3.fromRGB(255, 255, 255), 26)
+	end
+end
+
+--====================================================================--
 -- Per-frame-ish steps (the main loop ticks at 10 Hz)
 --====================================================================--
 
@@ -1037,13 +1425,22 @@ local function stepCarried()
 	end
 end
 
+-- Banked brainrots gently bob on their pads (around the pose banking
+-- left them in), while their "+$" floaters rise and fade.
 local function stepFloaters(dt)
+	local t = os.clock()
 	for _, ent in ipairs(entities) do
-		if ent.state == "banked" and ent.floaterGui then
-			ent.floatT = math.min(ent.floatT + dt, 1)
-			ent.floaterGui.StudsOffset = Vector3.new(0, 6.3 + ent.floatT * 1.6, 0)
-			if ent.floaterLabel then
-				ent.floaterLabel.TextTransparency = ent.floatT
+		if ent.state == "banked" then
+			if ent.idleCFrame then
+				local bob = math.sin(t * 2.2 + ent.bobPhase) * 0.13
+				ent.model:SetPrimaryPartCFrame(ent.idleCFrame + Vector3.new(0, bob, 0))
+			end
+			if ent.floaterGui then
+				ent.floatT = math.min(ent.floatT + dt, 1)
+				ent.floaterGui.StudsOffset = Vector3.new(0, 6.3 + ent.floatT * 1.6, 0)
+				if ent.floaterLabel then
+					ent.floaterLabel.TextTransparency = ent.floatT
+				end
 			end
 		end
 	end
@@ -1051,7 +1448,8 @@ end
 
 --====================================================================--
 -- The BANDIT: idles in his hideout, raids a random banked brainrot,
--- and drops it if its owner gets close on the escape run.
+-- and drops it if its owner gets close on the escape run. A tall red
+-- Neon beam rides over him for the whole raid, readable map-wide.
 --====================================================================--
 
 local function buildBanditModel()
@@ -1094,6 +1492,12 @@ local function buildBanditModel()
 	add("Brim", Vector3.new(0.25, 3.0, 3.0), CFrame.new(0, 4.15, 0) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(25, 25, 32), Enum.PartType.Cylinder)
 	add("HatTop", Vector3.new(1.0, 1.5, 1.5), CFrame.new(0, 4.6, 0) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(25, 25, 32), Enum.PartType.Cylinder)
 
+	-- The raid beam: hidden at home, lit whenever he is out stealing.
+	local beam = add("RaidBeam", Vector3.new(0.7, 26, 0.7), CFrame.new(0, 15.5, 0), Color3.fromRGB(255, 60, 60))
+	beam.Material = Enum.Material.Neon
+	beam.Transparency = 0.35
+	beam.Visible = false
+
 	local plate = Instance.new("BillboardGui")
 	plate.Name = "Nameplate"
 	plate.Size = UDim2.fromOffset(200, 54)
@@ -1111,17 +1515,21 @@ local function buildBanditModel()
 end
 
 local bandit = {
-	model = nil, root = nil,
+	model = nil, root = nil, beam = nil,
 	pos = Vector3.new(BANDIT_HOME.X, ROOT_Y, BANDIT_HOME.Z), baseY = ROOT_Y,
 	state = "idle", nextRaidAt = os.clock() + 55,
 	target = nil, loot = nil, bobPhase = 1.7,
 }
 bandit.model = buildBanditModel()
 bandit.root = bandit.model.PrimaryPart
+bandit.beam = bandit.model:FindFirstChild("RaidBeam")
 bandit.model.Parent = actors
 faceToward(bandit, LANE_POINTS[#LANE_POINTS])
 
 local function stepBandit(dt, t)
+	if bandit.beam then
+		bandit.beam.Visible = bandit.state == "hunting" or bandit.state == "escaping"
+	end
 	if bandit.state == "idle" then
 		if t >= bandit.nextRaidAt then
 			local banked = {}
@@ -1150,6 +1558,7 @@ local function stepBandit(dt, t)
 				target.pad = nil
 			end
 			detachFloater(target)
+			target.idleCFrame = nil
 			setPrompt(target, nil)
 			target.state = "stolen"
 			target.stolenFrom = target.owner
@@ -1206,6 +1615,8 @@ end
 --====================================================================--
 -- The TSUNAMI: a wall of water that rides the lane and washes away
 -- anything standing on it. Banked brainrots are safe on their pads.
+-- While the warning runs, the lane slabs pulse red; their pastel
+-- colours come back when the wave has passed.
 --====================================================================--
 
 local waveModel = Instance.new("Model")
@@ -1234,8 +1645,8 @@ do
 	wall.Parent = waveModel
 	local foam = Instance.new("Part")
 	foam.Name = "Foam"
-	foam.Size = Vector3.new(36, 3.5, 3.6)
-	foam.CFrame = CFrame.new(0, -54.5, 0)
+	foam.Size = Vector3.new(36, 5.6, 3.6) -- a crest 1.6x the old height
+	foam.CFrame = CFrame.new(0, -53.55, 0)
 	foam.Color = Color3.fromRGB(240, 250, 255)
 	foam.Material = Enum.Material.SmoothPlastic
 	foam.Transparency = 0.15
@@ -1246,6 +1657,18 @@ do
 	waveModel.Parent = world
 end
 
+local function setLaneAlarm(on)
+	for _, slab in ipairs(laneSlabs) do
+		if on then
+			slab.part.Color = Color3.fromRGB(255, 70, 70)
+			slab.part.Material = Enum.Material.Neon
+		else
+			slab.part.Color = slab.color
+			slab.part.Material = slab.material
+		end
+	end
+end
+
 local wave = { state = "idle", nextAt = os.clock() + 150, warnEnd = 0, s = 0 }
 
 local function stepWave(dt, t)
@@ -1253,9 +1676,15 @@ local function stepWave(dt, t)
 		if t >= wave.nextAt then
 			wave.state = "warning"
 			wave.warnEnd = t + 10
+			setLaneAlarm(true)
 			notifyAll("TSUNAMI in 10 seconds! Bank your brainrots — anything on the lane washes away!", "danger")
 		end
 	elseif wave.state == "warning" then
+		local pulse = math.floor(t * 2) % 2 == 0
+			and Color3.fromRGB(255, 70, 70) or Color3.fromRGB(255, 165, 165)
+		for _, slab in ipairs(laneSlabs) do
+			slab.part.Color = pulse
+		end
 		if t >= wave.warnEnd then
 			wave.state = "sweeping"
 			wave.s = 0
@@ -1288,6 +1717,7 @@ local function stepWave(dt, t)
 		end
 		if wave.s >= LANE_LENGTH then
 			waveModel:SetPrimaryPartCFrame(CFrame.new(0, -80, 0))
+			setLaneAlarm(false)
 			wave.state = "idle"
 			wave.nextAt = t + 180
 			notifyAll("The tsunami passed... the lane is safe, for now.", "info")
@@ -1443,6 +1873,59 @@ local function onPlayerRemoving(player)
 	playerData[player] = nil
 end
 
+-- The rebirth payoff: a burst of confetti over the player's plot. A few
+-- dozen small colourful cubes pop upward, rain down, and clean
+-- themselves up after about two seconds. Its little seeded generator
+-- keeps the burst identical every time, like the meadow scatter.
+local CONFETTI_COLORS = {
+	Color3.fromRGB(255, 90, 120), Color3.fromRGB(255, 200, 60), Color3.fromRGB(110, 220, 110),
+	Color3.fromRGB(90, 170, 255), Color3.fromRGB(190, 120, 255), Color3.fromRGB(255, 150, 80),
+}
+local function burstConfetti(center)
+	local folder = Instance.new("Folder")
+	folder.Name = "ConfettiBurst"
+	folder.Parent = actors
+	local state = 424242
+	local function crand()
+		state = (state * 48271) % 2147483647
+		return state / 2147483647
+	end
+	local pieces = {}
+	for i = 1, 36 do
+		local p = Instance.new("Part")
+		p.Name = "Confetti"
+		p.Size = Vector3.new(0.38, 0.38, 0.38)
+		p.Color = CONFETTI_COLORS[(i % #CONFETTI_COLORS) + 1]
+		p.Material = Enum.Material.Neon
+		p.Anchored = true
+		p.CanCollide = false
+		p.CanQuery = false
+		p.CFrame = CFrame.new(center + Vector3.new((crand() - 0.5) * 6, crand() * 2, (crand() - 0.5) * 6))
+		p.Parent = folder
+		table.insert(pieces, {
+			part = p,
+			vel = Vector3.new((crand() - 0.5) * 10, 9 + crand() * 7, (crand() - 0.5) * 10),
+			spin = crand() * 6.28,
+		})
+	end
+	task.spawn(function()
+		for _ = 1, 24 do
+			local dt = task.wait(0.08)
+			for _, piece in ipairs(pieces) do
+				piece.vel = Vector3.new(piece.vel.X, piece.vel.Y - 22 * dt, piece.vel.Z)
+				local pos = piece.part.Position + piece.vel * dt
+				if pos.Y < 0.45 then
+					pos = Vector3.new(pos.X, 0.45, pos.Z)
+					piece.vel = Vector3.zero
+				end
+				piece.spin += dt * 7
+				piece.part.CFrame = CFrame.new(pos) * CFrame.Angles(piece.spin, piece.spin * 0.7, 0)
+			end
+		end
+		folder:Destroy()
+	end)
+end
+
 rebirthEvent.OnServerEvent:Connect(function(player)
 	local pd = playerData[player]
 	if not pd then
@@ -1471,6 +1954,12 @@ rebirthEvent.OnServerEvent:Connect(function(player)
 		rb.Value = rebirths + 1
 	end
 	updateIncome(player)
+	local burstAt = pd.plot and pd.plot.center or nil
+	if not burstAt then
+		local hrp = hrpOf(player)
+		burstAt = hrp and hrp.Position or Vector3.new(0, 0, 0)
+	end
+	burstConfetti(Vector3.new(burstAt.X, 6.5, burstAt.Z))
 	notify(player, "REBIRTH! Your income is now x" .. Brainrots.RebirthMult(rebirths + 1) .. " — forever!", "good")
 	notifyAll(player.Name .. " rebirthed! Income x" .. Brainrots.RebirthMult(rebirths + 1) .. "!", "info")
 end)
@@ -1485,9 +1974,17 @@ for _, player in ipairs(Players:GetPlayers()) do
 	task.spawn(onPlayerAdded, player)
 end
 
--- Opening population: five walkers already spread along the lane.
-for k = 1, 5 do
-	spawnWalker(k)
+-- Opening population: eight walkers staggered along the lane, the third
+-- guaranteed Gold and the sixth guaranteed Rainbow, so the very first
+-- frame already sparkles.
+for k = 1, 8 do
+	local forced = nil
+	if k == 3 then
+		forced = mutationByName.Gold
+	elseif k == 6 then
+		forced = mutationByName.Rainbow
+	end
+	spawnWalkerAt(LANE_LENGTH * (k - 0.5) / 8, forced)
 end
 
 local spawnAcc, incomeAcc, signAcc = 0, 0, 0
@@ -1502,7 +1999,7 @@ task.spawn(function()
 		stepFloaters(dt)
 
 		spawnAcc += dt
-		if spawnAcc >= 3.2 then
+		if spawnAcc >= 2.0 then
 			spawnAcc = 0
 			local laneCount = 0
 			for _, ent in ipairs(entities) do
@@ -1510,7 +2007,7 @@ task.spawn(function()
 					laneCount += 1
 				end
 			end
-			if laneCount < 12 then
+			if laneCount < 18 then
 				spawnWalker(1)
 			end
 		end
@@ -1529,4 +2026,10 @@ task.spawn(function()
 	end
 end)
 
-print("[Brainrot Heist] world built: 8 bases, a " .. math.floor(LANE_LENGTH) .. "-stud lane, one bandit, weather incoming")
+local worldParts = 0
+for _, d in ipairs(world:GetDescendants()) do
+	if d:IsA("BasePart") then
+		worldParts += 1
+	end
+end
+print("[Brainrot Heist] world built: 8 bases, a " .. math.floor(LANE_LENGTH) .. "-stud lane, one bandit, weather incoming, " .. worldParts .. " world parts")

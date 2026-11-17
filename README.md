@@ -3,51 +3,77 @@
 A 3D brainrot collector-and-stealer for Roblox, built for make.fun's
 **roblox-brainrot-01** bounty ("Make the best AI Roblox brainrot game").
 
-Absurd meme characters stroll down a winding lane through a bright meadow.
-Buy one, hoist it over your head, and dash home to bank it on your base —
-where it earns you cash every second. But your rivals can steal what you
-bank, a **BANDIT** raids bases on a timer, and every few minutes a
-**TSUNAMI** washes the whole lane clean. Bank fast, steal faster, rebirth
-for a permanent income multiplier.
+Absurd meme characters stroll down a winding pastel-rainbow lane through
+a bright meadow. Buy one, hoist it over your head — it slowly spins up
+there — and dash home to bank it on your base, where it bobs on its pad
+and earns you cash every second. But your rivals can steal what you
+bank, a **BANDIT** raids bases on a timer under a tall red beam, and
+every few minutes a **TSUNAMI** washes the whole lane clean. Bank fast,
+steal faster, rebirth for a permanent income multiplier — celebrated
+with a confetti burst over your plot.
 
 ## How to play
 
 1. **Buy** — walk up to a brainrot on the lane and use its prompt (E).
    Rarer brainrots cost more and earn more.
-2. **Carry** — your prize rides over your head. You can only carry one.
-3. **Bank** — step onto your own base plot (the coloured ring plot with
-   your name on the sign). Your brainrot takes a pad and starts paying
-   you every second, with a floating "+$" over its head.
+2. **Carry** — your prize rides over your head, slowly spinning. You can
+   only carry one.
+3. **Bank** — step onto your own base plot (the colour-coded ring plot
+   with your name on the sign, a Neon trim frame, an awning and a
+   treasure chest). Your brainrot takes a pad and starts paying you
+   every second, with a floating "+$" over its head.
 4. **Steal** — hold the prompt on a rival's banked brainrot for 1.5
    seconds to grab it, then run it home. Freshly stolen brainrots can't
    be re-stolen for 5 seconds.
 5. **Survive the BANDIT** — roughly every minute he raids a random base
-   and runs for his hideout with the loot. If the owner gets close to him
-   on the escape run, he drops the brainrot as a loose carryable anyone
-   can pick up. If he reaches the hideout, it's gone.
-6. **Survive the TSUNAMI** — every ~3 minutes a wall of water sweeps the
-   lane after a 10-second warning. Anything standing on the lane —
-   walking, loose, or carried — is washed away. Banked brainrots are safe.
+   and runs for his hideout with the loot; a tall red Neon beam marks
+   him for the whole raid, so you always know where to chase. If the
+   owner gets close to him on the escape run, he drops the brainrot as
+   a loose carryable anyone can pick up. If he reaches the hideout,
+   it's gone.
+6. **Survive the TSUNAMI** — every ~3 minutes a wall of water sweeps
+   the lane after a 10-second warning, and during the warning the lane
+   slabs themselves pulse red. Anything standing on the lane —
+   walking, loose, or carried — is washed away. Banked brainrots
+   are safe.
 7. **Rebirth** — the HUD button trades your cash and collection for a
-   permanent +50% income multiplier. Prices: $25K, $100K, $400K, ...
+   permanent +50% income multiplier and a confetti celebration.
+   Prices: $25K, $100K, $400K, ...
 
 ## The roster
 
 12 original characters across 7 rarity tiers — Common, Uncommon, Rare,
 Epic, Legendary, Mythic, and **Brainrot God** — from the humble
 **Noodle Newt** ($25) to the **Cosmic Cappuccino** ($150K, $5,200/s).
-Spawns can roll a mutation: **Gold x2**, **Diamond x3**, or
-**Rainbow x5** income, with a tinted body and sparkles to match.
-Rare-and-above brainrots wear a pillar of light in their tier colour, so
-the good stuff is visible across the meadow.
+Models grow with their tier (x1.0 at Common up to ~x1.35 at God);
+Epic-and-above wear a gold crown and Legendary-and-above float a Neon
+halo. Spawns can roll a mutation: **Gold x2**, **Diamond x3**, or
+**Rainbow x5** income, with a tinted body and a sparkle emitter to
+match. Rare-and-above brainrots wear a pillar of light in their tier
+colour, so the good stuff is visible across the meadow.
 
 ## The world
 
-Everything is built procedurally by the server script from plain parts —
-no external assets: the S-curve lane and its gates, the signed
-**BRAINROT HEIST** arch, 8 colour-coded base plots with pads and live
-income signs, a richest-collectors board that updates in-world, the
-Rebirth Shrine, the Bandit's hideout, trees, flowers and clouds.
+Everything is built procedurally by the server script from plain
+parts — no external assets:
+
+- **The hero vista at spawn** — a big BRAINROT HEIST welcome sign and
+  a HOW TO PLAY rules board flank the spawn pad, so the game's name
+  and loop are the first thing in frame.
+- **The showcase row** — the full 12-brainrot roster stands on
+  pedestals in two arcs beside the spawn, each with its nameplate and
+  a price/income board. The whole collection in one screenshot.
+- **The lane** — an S-curve of pastel-rainbow slabs with entry and
+  exit gates, fences and lamp posts shadowing both sides, and the
+  signed **BRAINROT HEIST** arch (rainbow-striped beam) over the
+  middle.
+- **Tier monuments** — three oversized statues along the lane: a giant
+  Cosmic Cappuccino with a Neon swirl ring, a giant DJ Banana wearing
+  headphones, and a giant Cactus Cowboy, each with a floating sign.
+- **8 colour-coded base plots** with pads, live income signs, Neon
+  trim frames, awnings and treasure chests; a richest-collectors
+  board (gold Neon trim) that updates in-world; the Rebirth Shrine;
+  the Bandit's hideout; trees, four colour bands of flowers, clouds.
 
 ## Files
 
@@ -55,7 +81,7 @@ Rebirth Shrine, the Bandit's hideout, trees, flowers and clouds.
 | --- | --- |
 | `main.ts` | The hand-in program: copies the place, `src/`, `screenshots/` and `PLAY.json` to the output and writes `dossier.json` with the vendored library. |
 | `vendor/makefun-roblox.ts` | make.fun's place library, byte for byte the kit's copy. |
-| `src/server/Main.server.luau` | Paste into a **Script** named `Main` in **ServerScriptService**. Builds the world and runs the whole game, server-authoritatively. |
+| `src/server/Main.server.luau` | Paste into a **Script** named `Main` in **ServerScriptService**. Builds the world and runs the whole game, server-authoritatively. It also heals the place itself: characters auto-load and the starter ground is cleared in code, so no manual place settings are needed. |
 | `src/shared/Brainrots.luau` | Paste into a **ModuleScript** named `Brainrots` in **ReplicatedStorage**. The roster, tiers, mutations, rebirth maths and money formatting, shared by server and client. |
 | `src/client/Client.client.luau` | Paste into a **LocalScript** named `Client` in **StarterPlayer > StarterPlayerScripts**. The HUD: cash/income top-right (top-left stays clear for Roblox's menu), carry line, banners, rebirth button. |
 | `default.project.json` | The Rojo project mapping the three scripts to those same homes. |
