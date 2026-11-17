@@ -20,6 +20,17 @@ Open the experience in **Roblox Studio** (Creator Dashboard → the
 experience → **Edit**, or Studio's home screen → the experience).
 In the **Explorer** panel (View → Explorer if hidden):
 
+**First, delete the starter's two scripts** — the published starter place
+still contains them, and its client script draws a grey square over the
+whole screen:
+
+- **ServerScriptService** → the Script named `Server` → right-click →
+  **Delete**.
+- **StarterPlayer → StarterPlayerScripts** → the Folder named `Client`
+  (it holds a LocalScript named `Game`) → right-click → **Delete**.
+
+Then paste ours:
+
 1. **ReplicatedStorage** → hover → **+** → **ModuleScript**.
    Rename it to exactly `Brainrots`. Double-click to open it, select all
    (Ctrl+A), delete, and paste the whole contents of
