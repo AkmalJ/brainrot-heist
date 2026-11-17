@@ -7,10 +7,11 @@ Absurd meme characters stroll down a winding pastel-rainbow lane through
 a bright meadow. Buy one, hoist it over your head — it slowly spins up
 there — and dash home to bank it on your base, where it bobs on its pad
 and earns you cash every second. But your rivals can steal what you
-bank, a **BANDIT** raids bases on a timer under a tall red beam, and
-every few minutes a **TSUNAMI** washes the whole lane clean. Bank fast,
-steal faster, rebirth for a permanent income multiplier — celebrated
-with a confetti burst over your plot.
+bank, a **BANDIT** raids bases on a timer under a tall red beam, every
+few minutes a **TSUNAMI** washes the whole lane clean, and every few
+minutes after that a **GOLDEN RUSH** turns every new walker Gold for
+30 seconds. Bank fast, steal faster, rebirth for a permanent income
+multiplier — celebrated with a confetti burst over your plot.
 
 ## How to play
 
@@ -19,9 +20,10 @@ with a confetti burst over your plot.
 2. **Carry** — your prize rides over your head, slowly spinning. You can
    only carry one.
 3. **Bank** — step onto your own base plot (the colour-coded ring plot
-   with your name on the sign, a Neon trim frame, an awning and a
-   treasure chest). Your brainrot takes a pad and starts paying you
-   every second, with a floating "+$" over its head.
+   with your name on its framed sign, a Neon trim frame, a low fence,
+   a lantern, an awning and a treasure chest). Your brainrot takes a
+   pad and starts paying you every second, with a floating "+$" over
+   its head.
 4. **Steal** — hold the prompt on a rival's banked brainrot for 1.5
    seconds to grab it, then run it home. Freshly stolen brainrots can't
    be re-stolen for 5 seconds.
@@ -36,7 +38,10 @@ with a confetti burst over your plot.
    slabs themselves pulse red. Anything standing on the lane —
    walking, loose, or carried — is washed away. Banked brainrots
    are safe.
-7. **Rebirth** — the HUD button trades your cash and collection for a
+7. **Catch the GOLDEN RUSH** — every ~4 minutes, a 30-second rush:
+   every walker that spawns is Gold (x2 income), and the great arch's
+   rainbow stripes turn gold while it lasts.
+8. **Rebirth** — the HUD button trades your cash and collection for a
    permanent +50% income multiplier and a confetti celebration.
    Prices: $25K, $100K, $400K, ...
 
@@ -57,23 +62,34 @@ colour, so the good stuff is visible across the meadow.
 Everything is built procedurally by the server script from plain
 parts — no external assets:
 
-- **The hero vista at spawn** — a big BRAINROT HEIST welcome sign and
-  a HOW TO PLAY rules board flank the spawn pad, so the game's name
-  and loop are the first thing in frame.
-- **The showcase row** — the full 12-brainrot roster stands on
-  pedestals in two arcs beside the spawn, each with its nameplate and
-  a price/income board. The whole collection in one screenshot.
+- **One sign language** — every sign in the world is a framed totem:
+  a dark board with Neon trim and wooden posts, from the welcome sign
+  to the plot owner signs to the monument plaques.
+- **The hero vista at spawn** — a big BRAINROT HEIST welcome totem and
+  a HOW TO PLAY totem flank the spawn pad, so the game's name and
+  loop are the first thing in frame.
+- **The BRAINROT HALL OF FAME** — the full 12-brainrot roster staged
+  on a two-tier circular stage at spawn: the six lower tiers on the
+  front arc, the six higher tiers elevated behind them, each on a
+  pedestal with a nameplate and a framed info board (name, tier,
+  price, income), under a backdrop wall and two spotlight beams.
+  The whole collection in one screenshot.
 - **The lane** — an S-curve of pastel-rainbow slabs with entry and
-  exit gates, fences and lamp posts shadowing both sides, and the
-  signed **BRAINROT HEIST** arch (rainbow-striped beam) over the
-  middle.
+  exit gates, fences and lamp posts shadowing both sides, the signed
+  **BRAINROT HEIST** arch (rainbow-striped beam) over the middle, and
+  a second rainbow arch halfway down.
 - **Tier monuments** — three oversized statues along the lane: a giant
   Cosmic Cappuccino with a Neon swirl ring, a giant DJ Banana wearing
-  headphones, and a giant Cactus Cowboy, each with a floating sign.
-- **8 colour-coded base plots** with pads, live income signs, Neon
-  trim frames, awnings and treasure chests; a richest-collectors
-  board (gold Neon trim) that updates in-world; the Rebirth Shrine;
-  the Bandit's hideout; trees, four colour bands of flowers, clouds.
+  headphones, and a giant Cactus Cowboy, each with a framed plaque.
+- **A built meadow** — a light-stone plaza under the spawn quarter,
+  segmented stone paths running out to every plot, a pond with a
+  plank dock and lily pads, green hills in the corners (two of them
+  tree-topped), and a seeded scatter of trees, flower bands, bushes
+  and rocks.
+- **8 colour-coded base plots** with pads, live income signs in the
+  framed style, Neon trim frames, low fences, entrance lanterns,
+  awnings and treasure chests; a richest-collectors board that
+  updates in-world; the Rebirth Shrine; the Bandit's hideout.
 
 ## Files
 

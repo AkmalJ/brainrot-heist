@@ -1,4 +1,4 @@
-# STUDIO STEPS — Brainrot Heist, phase 2 (owner's sheet)
+# STUDIO STEPS — Brainrot Heist, v2.1 update (owner's sheet)
 
 *For the account owner, in Roblox Studio, on the SAME experience that
 phase 1 published (already Public, play code already in its
@@ -11,6 +11,13 @@ You need three text files from the repository, open in any text editor:
 - `src/shared/Brainrots.luau`
 - `src/server/Main.server.luau`
 - `src/client/Client.client.luau`
+
+**What changed in v2.1:** only `Main.server.luau` has new contents —
+a bug fix (the frozen-walkers bug from the last playtest), the new
+BRAINROT HALL OF FAME stage at spawn, framed signs everywhere, a
+filled-in meadow (plaza, paths, pond, hills, a second arch), and a new
+GOLDEN RUSH event. `Brainrots.luau` and `Client.client.luau` are
+unchanged; re-paste them only if you are setting up from scratch.
 
 **No place settings to fix by hand.** The Main script heals the place
 itself the moment it loads: it switches character auto-load on and
@@ -48,22 +55,42 @@ and home, so both must match exactly:
 Press **Play** (F5). Check, in order:
 
 - [ ] You spawn and are teleported to stand in front of a base plot
-      whose sign carries **your name**.
+      whose framed sign carries **your name**.
 - [ ] HUD, top-right: **$100**, "+$0/s", a rebirth line. A help line
       sits bottom-left and a purple **REBIRTH** button bottom-right.
       The top-left corner stays empty (that's Roblox's own menu
       corner).
-- [ ] Around the spawn: a pink **BRAINROT HEIST** welcome sign, a
-      **HOW TO PLAY** rules board, and the showcase row — all 12
-      brainrots on pedestals with price boards in front of them.
-- [ ] Eight brainrots are already strolling the pastel-rainbow lane,
-      each with a nameplate ("Noodle Newt +$1/s • Common", prices on
-      their prompts). One of them is **GOLD** and one is **RAINBOW**,
-      both sparkling. Epic-and-above walkers wear a gold crown;
-      Legendary-and-above float a Neon halo.
-- [ ] Along the lane: fences and lamp posts, and three giant statues
-      — a cappuccino cup, a banana with headphones, a cactus with a
-      cowboy hat — each with a floating name sign.
+- [ ] Around the spawn: two framed totems — a pink-trimmed
+      **BRAINROT HEIST** welcome sign and a gold-trimmed **HOW TO
+      PLAY** rules board (dark boards, neon trim, wooden posts) —
+      and the **BRAINROT HALL OF FAME**: a two-tier stone stage with
+      glowing gold rings, all 12 brainrots on pedestals (base, column,
+      glowing tier-coloured top plate), the six higher tiers elevated
+      at the back, a backdrop wall reading **★ BRAINROT HALL OF
+      FAME ★**, two spotlights beaming onto the stage, and a small
+      framed info board in front of each pedestal (name / tier /
+      price • income).
+- [ ] The meadow is filled in: a light-stone **plaza** under the
+      spawn quarter, stone **paths** running out to every plot, a
+      **pond** with a plank dock and lily pads, green **hills** in
+      the corners (two topped with trees), and bushes and rocks
+      scattered between the trees and flowers.
+- [ ] **The walkers are MOVING**: eight brainrots are already
+      strolling the pastel-rainbow lane, each with a nameplate
+      ("Noodle Newt +$1/s • Common", prices on their prompts). One
+      of them is **GOLD** and one is **RAINBOW**, both sparkling.
+      Epic-and-above walkers wear a gold crown; Legendary-and-above
+      float a Neon halo. ⚠️ **If they stand frozen, STOP here:**
+      open **View → Output**, take a photo of the red error line,
+      and send it to the agent before doing anything else — a frozen
+      world is exactly the bug this version fixes, and the error
+      line is how the agent finds any new one.
+- [ ] Along the lane: fences and lamp posts, a **second rainbow
+      arch** halfway down, and three giant statues — a cappuccino
+      cup, a banana with headphones, a cactus with a cowboy hat —
+      each with a framed plaque.
+- [ ] Your plot has a low fence (posts and a rail) along its back and
+      sides and a glowing **lantern** at its entrance.
 - [ ] Walk to a cheap one (Noodle Newt, $25), press **E** on its
       **Buy** prompt: it rides over your head, slowly spinning, and
       the HUD's carry line appears.
@@ -71,14 +98,19 @@ Press **Play** (F5). Check, in order:
       the pad lights up in its tier colour, the brainrot bobs gently,
       a green "+$" floats up, and your cash starts climbing. Your
       base sign now shows your income.
-- [ ] After about a minute (with something banked): a banner
-      announces the **BANDIT**; a tall red beam marks him as he runs
-      in, grabs a banked brainrot and flees. Chase him and get
-      close — he drops it. Pick it up, bank it again.
+- [ ] At about **55 seconds** (with something banked): a banner
+      announces the **BANDIT**; a tall red beam glows over him the
+      whole time he is hunting and escaping, and it is gone once he
+      is back home. He grabs a banked brainrot and flees — chase him
+      and get close, he drops it. Pick it up, bank it again.
 - [ ] At about 2.5 minutes: a red **TSUNAMI** warning banner, and the
       lane slabs pulse red for 10 seconds; then a blue wall of water
       with a tall foam crest sweeps the lane and washes away anything
       standing on it. Banked brainrots survive.
+- [ ] At about **4 minutes**: a **★ GOLDEN RUSH! ★** banner — the
+      main arch's rainbow stripes turn gold, and every walker that
+      spawns for the next 30 seconds is Gold. (It comes back every
+      ~4 minutes; fine to skip in a short test.)
 - [ ] Stop with **Shift+F5**. If anything above failed, open
       **View → Output**, take a photo/screenshot of any red error
       lines, and send it to the agent before going on.
@@ -101,8 +133,8 @@ PNG. Use these exact file names:
 
 | File | What it shows |
 | --- | --- |
-| `01-cover.png` | The cover: stand at the spawn looking across the showcase row toward the **BRAINROT HEIST** arch — welcome sign, rules board, pedestals with the roster, strolling brainrots with nameplates, base plots around. |
-| `02-base.png` | Your base with at least one banked brainrot bobbing on a lit pad, "+$" floating, your name and income on the base sign, the treasure chest in the corner. |
+| `01-cover.png` | The cover: stand at the spawn looking across the **Hall of Fame stage** toward the **BRAINROT HEIST** arch — framed welcome and rules totems, the staged roster on its pedestals with nameplates, strolling brainrots beyond, base plots around. |
+| `02-base.png` | Your base with at least one banked brainrot bobbing on a lit pad, "+$" floating, your name and income on the framed base sign, the treasure chest in the corner. |
 | `03-steal.png` | A brainrot spinning over your head mid-dash home (buy one — or steal one if a second player is in — and run), carry line on the HUD. |
 | `04-wave.png` | The tsunami: when the warning banner fires, get a view over the lane — red pulsing slabs if you catch the warning, the blue wall with its foam crest if you catch the sweep. |
 

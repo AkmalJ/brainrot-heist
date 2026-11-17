@@ -21,17 +21,26 @@
 	    on the lane — walker, loose or carried — is washed away. Banked
 	    brainrots are safe. While the 10-second warning runs, the lane
 	    itself flashes red.
+	  * Every ~4 minutes a GOLDEN RUSH runs for 30 seconds: every walker
+	    that spawns is Gold, and the great arch's rainbow stripes turn
+	    gold to match.
 	  * Rebirth (HUD button -> BrainrotRebirth remote) resets cash and
 	    collection for a permanent +50% income multiplier per rebirth, and
 	    celebrates with a confetti burst over your plot.
 
-	The set dressing is themed, not filler: a welcome sign and a rules
-	board flank the spawn, the full 12-brainrot roster stands on a
-	showcase row of pedestals beside it, and three oversized monuments
-	along the lane — a giant Cosmic Cappuccino, DJ Banana and Cactus
-	Cowboy — advertise the roster's stars. Fences and lamp posts shadow
-	the lane; every base plot wears a Neon trim frame, an awning over its
-	owner sign and a treasure chest in its back corner.
+	The set dressing is themed, not filler: every sign in the world is a
+	framed totem — dark board, Neon trim, wooden posts — from the welcome
+	sign and rules board flanking the spawn to the plot owner signs and
+	the monument plaques. The full 12-brainrot roster stands staged on
+	the two-tier BRAINROT HALL OF FAME at spawn, each on its own
+	pedestal with a framed info board, under a backdrop wall and two
+	spotlight beams. Three oversized monuments along the lane — a giant
+	Cosmic Cappuccino, DJ Banana and Cactus Cowboy — advertise the
+	roster's stars, and a second rainbow arch crosses the lane halfway
+	down. A stone plaza, paths to every plot, a pond, corner hills,
+	fences and lamp posts fill out the meadow; every base plot wears a
+	Neon trim frame, a low fence, a lantern, an awning over its owner
+	sign and a treasure chest in its back corner.
 
 	No DataStore: a session is a fresh heist. Cash and rebirths live in
 	leaderstats; the client HUD reads those plus the Carrying / IncomePerSec
@@ -168,6 +177,75 @@ local function makeSign(parent, name, size, position, faceTarget, bgColor, title
 end
 
 --====================================================================--
+-- Framed signage: the world's one sign language. A dark backing board
+-- edged with four Neon trim bars in an accent colour, text stacked in
+-- weighted rows on its face, standing on wooden posts. postMode picks
+-- the legs: 0 = floating (plaques), 1 = one centre post, 2 = two posts.
+-- tiltDeg tips the face upward (display boards at a stage's foot);
+-- baseY is the ground the posts stand on (0 = the meadow/plaza).
+-- lines: { { text, font, size, color, w }, ... } — w is a row weight.
+-- Returns (folder, labels) so callers can rewrite label text live.
+--====================================================================--
+
+local SIGN_BG = Color3.fromRGB(26, 30, 46)
+local SIGN_POST = Color3.fromRGB(120, 85, 50)
+
+local function makeFramedSign(parent, name, width, height, position, faceTarget, accent, lines, postMode, tiltDeg, baseY)
+	local folder = Instance.new("Folder")
+	folder.Name = name
+	folder.Parent = parent
+	local cf = CFrame.lookAt(position, Vector3.new(faceTarget.X, position.Y, faceTarget.Z))
+	if tiltDeg and tiltDeg ~= 0 then
+		cf = cf * CFrame.Angles(math.rad(tiltDeg), 0, 0)
+	end
+	makePart(folder, "Board", Vector3.new(width, height, 0.7), cf, SIGN_BG)
+	local function trim(trimName, sx, sy, ox, oy)
+		local t = makePart(folder, trimName, Vector3.new(sx, sy, 0.3),
+			cf * CFrame.new(ox, oy, -0.42), accent, Enum.Material.Neon)
+		t.CanCollide = false
+	end
+	trim("TrimT", width + 0.5, 0.5, 0, height / 2 - 0.02)
+	trim("TrimB", width + 0.5, 0.5, 0, -height / 2 + 0.02)
+	trim("TrimL", 0.5, height + 0.5, -width / 2 + 0.02, 0)
+	trim("TrimR", 0.5, height + 0.5, width / 2 - 0.02, 0)
+	local backing = folder:FindFirstChild("Board")
+	local gui = Instance.new("SurfaceGui")
+	gui.Face = Enum.NormalId.Front
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 40
+	gui.Parent = backing
+	local labels = {}
+	local totalW = 0
+	for _, ln in ipairs(lines) do
+		totalW += ln.w or 1
+	end
+	local y = 0
+	for i, ln in ipairs(lines) do
+		local h = (ln.w or 1) / totalW
+		labels[i] = makeLabel(gui, "Line" .. i, ln.text,
+			UDim2.fromScale(1, h), UDim2.fromScale(0, y),
+			ln.font or Enum.Font.GothamBold, ln.size or 26,
+			ln.color or Color3.fromRGB(255, 255, 255))
+		y += h
+	end
+	local ground = baseY or 0
+	local postTop = position.Y - height / 2 + 0.3
+	local postH = math.max(postTop - ground, 0.1)
+	if postMode == 2 then
+		local right = cf.RightVector
+		for _, sgn in ipairs({ -1, 1 }) do
+			local pp = position + right * (sgn * (width / 2 - 1.3))
+			makePart(folder, "Post", Vector3.new(0.8, postH, 0.8),
+				CFrame.new(pp.X, ground + postH / 2, pp.Z), SIGN_POST)
+		end
+	elseif postMode == 1 then
+		makePart(folder, "Post", Vector3.new(0.7, postH, 0.7),
+			CFrame.new(position.X, ground + postH / 2, position.Z), SIGN_POST)
+	end
+	return folder, labels
+end
+
+--====================================================================--
 -- The lane: an S-curve of waypoints across the meadow.
 --====================================================================--
 
@@ -279,6 +357,14 @@ buildGate(LANE_POINTS[1], Vector3.new(-0.707, 0, 0.707), "BRAINROTS ENTER",
 buildGate(LANE_POINTS[#LANE_POINTS], Vector3.new(0.707, 0, 0.707), "LANE EXIT",
 	"Mind the BANDIT past here...", Color3.fromRGB(90, 90, 100))
 
+-- The six rainbow colours both arches wear — and the great arch's
+-- stripes are kept in a table so a Golden Rush can gild them.
+local rainbowPalette = {
+	Color3.fromRGB(255, 90, 90), Color3.fromRGB(255, 160, 60), Color3.fromRGB(255, 230, 90),
+	Color3.fromRGB(110, 220, 110), Color3.fromRGB(90, 170, 255), Color3.fromRGB(190, 120, 255),
+}
+local archStripes = {}
+
 -- The great arch over the middle, signed on both faces, brain on top,
 -- with six Neon rainbow stripes across the front of its beam.
 do
@@ -290,14 +376,11 @@ do
 	local beam = makePart(arch, "Beam", Vector3.new(27, 4.5, 3.5), CFrame.new(0, 13.75, 0), Color3.fromRGB(255, 170, 60))
 	attachSign(beam, Enum.NormalId.Front, "BRAINROT HEIST", nil, Color3.fromRGB(255, 255, 255), 64)
 	attachSign(beam, Enum.NormalId.Back, "BRAINROT HEIST", nil, Color3.fromRGB(255, 255, 255), 64)
-	local stripeColors = {
-		Color3.fromRGB(255, 90, 90), Color3.fromRGB(255, 160, 60), Color3.fromRGB(255, 230, 90),
-		Color3.fromRGB(110, 220, 110), Color3.fromRGB(90, 170, 255), Color3.fromRGB(190, 120, 255),
-	}
-	for i, sc in ipairs(stripeColors) do
+	for i, sc in ipairs(rainbowPalette) do
 		local stripe = makePart(arch, "Stripe", Vector3.new(3.6, 4.7, 0.3),
 			CFrame.new(-11.25 + (i - 1) * 4.5, 13.75, -1.9), sc, Enum.Material.Neon)
 		stripe.CanCollide = false
+		table.insert(archStripes, { part = stripe, color = sc })
 	end
 	local brain = makePart(arch, "Brain", Vector3.new(6.5, 5.5, 6.5), CFrame.new(0, 18.8, 0), Color3.fromRGB(255, 150, 190))
 	brain.Shape = Enum.PartType.Ball
@@ -322,80 +405,54 @@ do
 	spawn.Parent = world
 end
 
--- The hero vista at spawn: a big welcome sign on one side and a rules
--- board on the other, both facing the arriving player (and the camera
--- of the cover screenshot). The game's name and its whole loop, readable
--- from a few studs away, in the very first frame.
+-- The hero vista at spawn: a big framed welcome totem on one side and
+-- a framed HOW TO PLAY totem on the other, both facing the arriving
+-- player (and the camera of the cover screenshot). The game's name and
+-- its whole loop, readable from a few studs away, in the first frame.
 do
 	local welcome = Instance.new("Folder")
 	welcome.Name = "Welcome"
 	welcome.Parent = world
-	makeSign(welcome, "WelcomeSign", Vector3.new(16, 6.5, 1), Vector3.new(-9.5, 4.6, 28.5),
-		Vector3.new(-9.5, 4.6, 40), Color3.fromRGB(255, 120, 160),
-		"BRAINROT HEIST", "★ BUY • BANK • STEAL • REBIRTH ★", Color3.fromRGB(255, 255, 255), 52)
-	local rules = makePart(welcome, "RulesBoard", Vector3.new(16, 7.6, 1),
-		CFrame.lookAt(Vector3.new(9.5, 4.9, 28.5), Vector3.new(9.5, 4.9, 40)), Color3.fromRGB(30, 34, 52))
-	local rgui = Instance.new("SurfaceGui")
-	rgui.Face = Enum.NormalId.Front
-	rgui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-	rgui.PixelsPerStud = 40
-	rgui.Parent = rules
-	makeLabel(rgui, "Title", "HOW TO PLAY", UDim2.fromScale(1, 0.2), UDim2.fromScale(0, 0.02),
-		Enum.Font.FredokaOne, 40, Color3.fromRGB(255, 205, 60))
-	local ruleLines = {
-		"BUY brainrots from the lane",
-		"BANK them on your plot to earn",
-		"STEAL from rival plots",
-		"REBIRTH for +50% income",
-	}
-	for i, line in ipairs(ruleLines) do
-		makeLabel(rgui, "Rule" .. i, line, UDim2.fromScale(1, 0.15), UDim2.fromScale(0, 0.26 + (i - 1) * 0.17),
-			Enum.Font.GothamBold, 26, Color3.fromRGB(255, 255, 255))
-	end
-	for _, sx in ipairs({ -16.5, -2.5, 2.5, 16.5 }) do
-		makePart(welcome, "Post", Vector3.new(0.8, 3.4, 0.8), CFrame.new(sx, 1.7, 27.7),
-			Color3.fromRGB(120, 85, 50))
-	end
+	makeFramedSign(welcome, "WelcomeSign", 16, 6.5, Vector3.new(-9.5, 4.6, 28.5),
+		Vector3.new(-9.5, 4.6, 40), Color3.fromRGB(255, 120, 160), {
+			{ text = "BRAINROT HEIST", font = Enum.Font.FredokaOne, size = 52, w = 1.35 },
+			{ text = "★ BUY • BANK • STEAL • REBIRTH ★", font = Enum.Font.GothamBold, size = 25, w = 1 },
+		}, 2)
+	makeFramedSign(welcome, "RulesBoard", 16, 7.6, Vector3.new(9.5, 4.9, 28.5),
+		Vector3.new(9.5, 4.9, 40), Color3.fromRGB(255, 205, 60), {
+			{ text = "HOW TO PLAY", font = Enum.Font.FredokaOne, size = 40, color = Color3.fromRGB(255, 205, 60), w = 1.1 },
+			{ text = "BUY brainrots from the lane", font = Enum.Font.GothamBold, size = 26, w = 1 },
+			{ text = "BANK them on your plot to earn", font = Enum.Font.GothamBold, size = 26, w = 1 },
+			{ text = "STEAL from rival plots", font = Enum.Font.GothamBold, size = 26, w = 1 },
+			{ text = "REBIRTH for +50% income", font = Enum.Font.GothamBold, size = 26, w = 1 },
+		}, 2)
 end
 
 -- The richest-collectors board, north of the arch, facing spawn,
--- framed in gold Neon trim.
+-- in the same framed language with gold trim.
 local boardLines = {}
 do
 	local board = Instance.new("Folder")
 	board.Name = "RichestBoard"
 	board.Parent = world
-	makePart(board, "PostL", Vector3.new(1.2, 6, 1.2), CFrame.new(-9, 3, -27), Color3.fromRGB(120, 85, 50))
-	makePart(board, "PostR", Vector3.new(1.2, 6, 1.2), CFrame.new(9, 3, -27), Color3.fromRGB(120, 85, 50))
-	local panel = makePart(board, "Panel", Vector3.new(23, 11.5, 1),
-		CFrame.lookAt(Vector3.new(0, 8.5, -27), Vector3.new(0, 8.5, 0)), Color3.fromRGB(30, 34, 52))
-	local gui = Instance.new("SurfaceGui")
-	gui.Face = Enum.NormalId.Front
-	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-	gui.PixelsPerStud = 40
-	gui.Parent = panel
-	makeLabel(gui, "Title", "★ RICHEST COLLECTORS ★",
-		UDim2.fromScale(1, 0.2), UDim2.fromScale(0, 0.01),
-		Enum.Font.FredokaOne, 40, Color3.fromRGB(255, 205, 60))
+	local _, labels = makeFramedSign(board, "Panel", 23, 11.5, Vector3.new(0, 8.5, -27),
+		Vector3.new(0, 8.5, 0), Color3.fromRGB(255, 205, 60), {
+			{ text = "★ RICHEST COLLECTORS ★", font = Enum.Font.FredokaOne, size = 40, color = Color3.fromRGB(255, 205, 60), w = 1.15 },
+			{ text = "—", font = Enum.Font.GothamBold, size = 30, color = Color3.fromRGB(235, 240, 255), w = 1 },
+			{ text = "—", font = Enum.Font.GothamBold, size = 30, color = Color3.fromRGB(235, 240, 255), w = 1 },
+			{ text = "—", font = Enum.Font.GothamBold, size = 30, color = Color3.fromRGB(235, 240, 255), w = 1 },
+			{ text = "—", font = Enum.Font.GothamBold, size = 30, color = Color3.fromRGB(235, 240, 255), w = 1 },
+			{ text = "—", font = Enum.Font.GothamBold, size = 30, color = Color3.fromRGB(235, 240, 255), w = 1 },
+		}, 2)
 	for i = 1, 5 do
-		boardLines[i] = makeLabel(gui, "Line" .. i, "—",
-			UDim2.fromScale(1, 0.15), UDim2.fromScale(0, 0.22 + (i - 1) * 0.155),
-			Enum.Font.GothamBold, 30, Color3.fromRGB(235, 240, 255))
+		boardLines[i] = labels[i + 1]
 	end
-	local trimColor = Color3.fromRGB(255, 205, 60)
-	local function boardTrim(name, size, pos)
-		local t = makePart(board, name, size, CFrame.new(pos), trimColor, Enum.Material.Neon)
-		t.CanCollide = false
-	end
-	boardTrim("TrimT", Vector3.new(24.2, 0.55, 0.5), Vector3.new(0, 14.4, -26.4))
-	boardTrim("TrimB", Vector3.new(24.2, 0.55, 0.5), Vector3.new(0, 2.6, -26.4))
-	boardTrim("TrimL", Vector3.new(0.55, 12.4, 0.5), Vector3.new(-11.85, 8.5, -26.4))
-	boardTrim("TrimR", Vector3.new(0.55, 12.4, 0.5), Vector3.new(11.85, 8.5, -26.4))
 end
 
 --====================================================================--
 -- The 8 base plots in a ring. Each: floor, flat border, Neon trim,
--- 6 pads, a signed owner board with an awning, a treasure chest.
+-- a low fence on its back and sides, a lantern at its entrance,
+-- 6 pads, a framed owner sign with an awning, a treasure chest.
 --====================================================================--
 
 local PLOT_RADIUS = 122
@@ -438,6 +495,51 @@ for i = 1, 8 do
 	plotTrim("TrimE", Vector3.new(0.8, 0.4, 39.4), Vector3.new(cx + 19.3, 0.75, cz))
 	plotTrim("TrimW", Vector3.new(0.8, 0.4, 39.4), Vector3.new(cx - 19.3, 0.75, cz))
 
+	-- A low fence — white posts, one wooden rail — along the back and
+	-- both sides. The entrance edge (the one facing the meadow centre,
+	-- where the owner sign stands) stays open.
+	local fenceEdges = {
+		{ mid = Vector3.new(cx, 0, cz - 18.3), alongX = true, normal = Vector3.new(0, 0, -1) },
+		{ mid = Vector3.new(cx, 0, cz + 18.3), alongX = true, normal = Vector3.new(0, 0, 1) },
+		{ mid = Vector3.new(cx + 18.3, 0, cz), alongX = false, normal = Vector3.new(1, 0, 0) },
+		{ mid = Vector3.new(cx - 18.3, 0, cz), alongX = false, normal = Vector3.new(-1, 0, 0) },
+	}
+	local entranceNormal = fenceEdges[1].normal
+	for _, e in ipairs(fenceEdges) do
+		if e.normal.X * toCenter.X + e.normal.Z * toCenter.Z
+			> entranceNormal.X * toCenter.X + entranceNormal.Z * toCenter.Z then
+			entranceNormal = e.normal
+		end
+	end
+	for _, e in ipairs(fenceEdges) do
+		if e.normal ~= entranceNormal then
+			if e.alongX then
+				makePart(folder, "FenceRail", Vector3.new(37, 0.28, 0.28),
+					CFrame.new(e.mid.X, 1.25, e.mid.Z), Color3.fromRGB(146, 104, 58))
+			else
+				makePart(folder, "FenceRail", Vector3.new(0.28, 0.28, 37),
+					CFrame.new(e.mid.X, 1.25, e.mid.Z), Color3.fromRGB(146, 104, 58))
+			end
+			for _, off in ipairs({ -12, 0, 12 }) do
+				local px = e.alongX and (e.mid.X + off) or e.mid.X
+				local pz = e.alongX and e.mid.Z or (e.mid.Z + off)
+				makePart(folder, "FencePost", Vector3.new(0.42, 1.7, 0.42),
+					CFrame.new(px, 0.85, pz), Color3.fromRGB(248, 246, 240))
+			end
+		end
+	end
+
+	-- A lantern post just inside the entrance, off to one side so it
+	-- never argues with the owner sign on the centre line.
+	local sideVec = Vector3.new(-toCenter.Z, 0, toCenter.X)
+	local lampPos = center + toCenter * 20.3 + sideVec * 8.5
+	makePart(folder, "LanternPost", Vector3.new(0.42, 3.4, 0.42),
+		CFrame.new(lampPos.X, 1.7, lampPos.Z), Color3.fromRGB(45, 45, 58))
+	local lampGlobe = makePart(folder, "LanternGlobe", Vector3.new(1.15, 1.15, 1.15),
+		CFrame.new(lampPos.X, 3.75, lampPos.Z), Color3.fromRGB(255, 221, 130), Enum.Material.Neon)
+	lampGlobe.Shape = Enum.PartType.Ball
+	lampGlobe.CanCollide = false
+
 	local pads = {}
 	for _, dx in ipairs({ -11.5, 0, 11.5 }) do
 		for _, dz in ipairs({ -8.5, 8.5 }) do
@@ -451,12 +553,15 @@ for i = 1, 8 do
 		end
 	end
 
-	-- Sign on two posts at the plot's inner edge, facing the meadow centre.
+	-- Framed sign on two posts at the plot's inner edge, facing the
+	-- meadow centre, trimmed in the plot's own colour.
 	local signPos = center + toCenter * 21.5 + Vector3.new(0, 5.2, 0)
-	makePart(folder, "SignPost", Vector3.new(0.9, 5.2, 0.9), CFrame.new(signPos.X, 2.6, signPos.Z),
-		Color3.fromRGB(120, 85, 50))
-	local _, signTitle, signSub = makeSign(folder, "Sign", Vector3.new(19, 6.5, 0.8),
-		signPos, Vector3.new(0, 5.2, 0), color, "EMPTY BASE", "Waiting for a collector...", Color3.fromRGB(255, 255, 255), 42)
+	local _, signLabels = makeFramedSign(folder, "Sign", 19, 6.5, signPos,
+		Vector3.new(0, 5.2, 0), color, {
+			{ text = "EMPTY BASE", font = Enum.Font.FredokaOne, size = 42, w = 1.35 },
+			{ text = "Waiting for a collector...", font = Enum.Font.GothamBold, size = 25, w = 1 },
+		}, 2)
+	local signTitle, signSub = signLabels[1], signLabels[2]
 
 	-- An angled awning in the plot colour shading the owner sign.
 	local awningPos = signPos + Vector3.new(0, 4.1, 0) - toCenter * 1.0
@@ -465,7 +570,6 @@ for i = 1, 8 do
 	awning.CanCollide = false
 
 	-- A treasure chest in the back corner: this base is worth robbing.
-	local sideVec = Vector3.new(-toCenter.Z, 0, toCenter.X)
 	local chestPos = center - toCenter * 13.5 + sideVec * 13.5
 	local chestCf = CFrame.lookAt(Vector3.new(chestPos.X, 1.65, chestPos.Z), Vector3.new(0, 1.65, 0))
 	makePart(folder, "Chest", Vector3.new(3.6, 2.2, 2.8), chestCf, Color3.fromRGB(121, 85, 58))
@@ -549,6 +653,14 @@ local MONUMENT_SPOTS = {
 	Vector3.new(30, 0, 52), -- the giant Cactus Cowboy
 }
 
+-- The pond and the corner hills (built in the world-fill pass below);
+-- every scatter pass keeps off them, so their spots live up here.
+local POND_POS = Vector3.new(150, 0, -120)
+local HILL_SPOTS = {
+	{ x = 185, z = -185 }, { x = -185, z = -185 },
+	{ x = -185, z = 185 }, { x = 185, z = 185 },
+}
+
 local rngState = 123456789
 local function rand()
 	rngState = (rngState * 48271) % 2147483647
@@ -562,6 +674,33 @@ local function nearMonument(x, z, dist)
 		end
 	end
 	return false
+end
+
+local function nearHill(x, z, dist)
+	for _, h in ipairs(HILL_SPOTS) do
+		if math.sqrt((x - h.x) ^ 2 + (z - h.z) ^ 2) < dist then
+			return true
+		end
+	end
+	return false
+end
+
+-- One tree: a tilted trunk cylinder and two leafy spheres. baseY lifts
+-- the whole tree onto a hilltop (0 everywhere else).
+local TRUNK_COLOR = Color3.fromRGB(121, 85, 58)
+local LEAF_COLORS = { Color3.fromRGB(64, 160, 70), Color3.fromRGB(84, 180, 80), Color3.fromRGB(52, 140, 64) }
+local function buildTree(parent, tx, tz, leafIdx, baseY)
+	local by = baseY or 0
+	local trunk = makePart(parent, "Trunk", Vector3.new(5, 1.7, 1.7),
+		CFrame.new(tx, by + 2.5, tz) * CFrame.Angles(0, 0, math.rad(90)), TRUNK_COLOR)
+	trunk.Shape = Enum.PartType.Cylinder
+	local leafColor = LEAF_COLORS[(leafIdx % #LEAF_COLORS) + 1]
+	local crown = makePart(parent, "Crown", Vector3.new(7.5, 6.5, 7.5), CFrame.new(tx, by + 7.6, tz), leafColor)
+	crown.Shape = Enum.PartType.Ball
+	crown.CanCollide = false
+	local top = makePart(parent, "CrownTop", Vector3.new(5, 4.4, 5), CFrame.new(tx + 1.2, by + 10.2, tz), leafColor)
+	top.Shape = Enum.PartType.Ball
+	top.CanCollide = false
 end
 
 do
@@ -606,26 +745,12 @@ do
 	end
 
 	-- Trees: a fixed ring, plus a seeded scatter kept off the lane, the
-	-- plots, the spawn vista and the monuments.
-	local trunkColor = Color3.fromRGB(121, 85, 58)
-	local leafColors = { Color3.fromRGB(64, 160, 70), Color3.fromRGB(84, 180, 80), Color3.fromRGB(52, 140, 64) }
-	local function buildTree(tx, tz, leafIdx)
-		local trunk = makePart(decor, "Trunk", Vector3.new(5, 1.7, 1.7),
-			CFrame.new(tx, 2.5, tz) * CFrame.Angles(0, 0, math.rad(90)), trunkColor)
-		trunk.Shape = Enum.PartType.Cylinder
-		local leafColor = leafColors[(leafIdx % #leafColors) + 1]
-		local crown = makePart(decor, "Crown", Vector3.new(7.5, 6.5, 7.5), CFrame.new(tx, 7.6, tz), leafColor)
-		crown.Shape = Enum.PartType.Ball
-		crown.CanCollide = false
-		local top = makePart(decor, "CrownTop", Vector3.new(5, 4.4, 5), CFrame.new(tx + 1.2, 10.2, tz), leafColor)
-		top.Shape = Enum.PartType.Ball
-		top.CanCollide = false
-	end
+	-- plots, the plaza, the pond, the hills and the monuments.
 	for k = 0, 13 do
 		local a = math.rad(12 + k * (360 / 14))
 		local tx, tz = math.cos(a) * 96, math.sin(a) * 96
 		if distToLane(tx, tz) > 11 and not plotAt(tx, tz) then
-			buildTree(tx, tz, k)
+			buildTree(decor, tx, tz, k, 0)
 		end
 	end
 	local scattered = 0
@@ -638,9 +763,12 @@ do
 		local clear = distToLane(tx, tz) >= 16
 			and not plotAt(tx, tz)
 			and math.sqrt(tx ^ 2 + (tz - 34) ^ 2) >= 30
+			and math.sqrt(tx ^ 2 + (tz - 22) ^ 2) >= 37
 			and math.sqrt((tx - 110) ^ 2 + (tz - 100) ^ 2) >= 15
 			and math.sqrt((tx - 34) ^ 2 + (tz - 34) ^ 2) >= 11
 			and math.sqrt(tx ^ 2 + (tz + 27) ^ 2) >= 13
+			and math.sqrt((tx - POND_POS.X) ^ 2 + (tz - POND_POS.Z) ^ 2) >= 21
+			and not nearHill(tx, tz, 27)
 			and not nearMonument(tx, tz, 13)
 		if clear then
 			for _, plot in ipairs(plots) do
@@ -651,7 +779,7 @@ do
 			end
 		end
 		if clear then
-			buildTree(tx, tz, scattered)
+			buildTree(decor, tx, tz, scattered, 0)
 			scattered += 1
 		end
 	end
@@ -673,7 +801,10 @@ do
 		local r = 15 + rand() * 172
 		local fx, fz = math.cos(a) * r, math.sin(a) * r
 		local nearSpawn = math.sqrt(fx ^ 2 + (fz - 34) ^ 2) < 27
-		if distToLane(fx, fz) > 9 and not plotAt(fx, fz) and not nearSpawn and not nearMonument(fx, fz, 10) then
+		local onPlaza = math.sqrt(fx ^ 2 + (fz - 22) ^ 2) < 35.5
+		local inPond = math.sqrt((fx - POND_POS.X) ^ 2 + (fz - POND_POS.Z) ^ 2) < 19
+		if distToLane(fx, fz) > 9 and not plotAt(fx, fz) and not nearSpawn and not onPlaza
+			and not inPond and not nearHill(fx, fz, 26) and not nearMonument(fx, fz, 10) then
 			local f = makePart(decor, "Flower", Vector3.new(0.3, 0.95, 0.95),
 				CFrame.new(fx, 0.22, fz) * CFrame.Angles(0, 0, math.rad(90)),
 				bandColors[band][(placed % 2) + 1])
@@ -698,8 +829,168 @@ do
 end
 
 --====================================================================--
+-- World fill: a stone plaza under the spawn and the Hall of Fame,
+-- segmented stone paths out to every plot, a pond with a dock, green
+-- hills in the meadow corners, a second rainbow arch where the lane
+-- is 55% run, and a seeded scatter of bushes and rocks — so the
+-- meadow reads as a built place from any height.
+--====================================================================--
+
+do
+	local fill = Instance.new("Folder")
+	fill.Name = "WorldFill"
+	fill.Parent = world
+	local stone = Color3.fromRGB(232, 228, 218)
+
+	-- The plaza: a light-stone disc under the spawn/stage quarter.
+	local plaza = makePart(fill, "Plaza", Vector3.new(0.24, 68, 68),
+		CFrame.new(0, 0.14, 22) * CFrame.Angles(0, 0, math.rad(90)), stone)
+	plaza.Shape = Enum.PartType.Cylinder
+
+	-- Paths: segmented strips from the plaza out to each plot. The
+	-- first segments dive under the plaza (its top is higher) and the
+	-- strips surface where the plaza ends, in every direction.
+	for _, plot in ipairs(plots) do
+		local u = Vector3.new(plot.center.X, 0, plot.center.Z).Unit
+		for d = 16, 93, 11 do
+			local p = u * d
+			makePart(fill, "Path", Vector3.new(4, 0.18, 10.4),
+				CFrame.lookAt(Vector3.new(p.X, 0.12, p.Z), Vector3.new(p.X + u.X, 0.12, p.Z + u.Z)), stone)
+		end
+	end
+
+	-- The pond: a sand shore, glossy water, a plank dock walking out
+	-- from the west shore, and three lily pads.
+	local shore = makePart(fill, "PondShore", Vector3.new(0.3, 35, 35),
+		CFrame.new(POND_POS.X, 0.06, POND_POS.Z) * CFrame.Angles(0, 0, math.rad(90)),
+		Color3.fromRGB(238, 226, 180))
+	shore.Shape = Enum.PartType.Cylinder
+	local water = makePart(fill, "Pond", Vector3.new(0.5, 32, 32),
+		CFrame.new(POND_POS.X, 0.12, POND_POS.Z) * CFrame.Angles(0, 0, math.rad(90)),
+		Color3.fromRGB(70, 160, 255), Enum.Material.Glass)
+	water.Shape = Enum.PartType.Cylinder
+	water.Transparency = 0.2
+	water.CanCollide = false
+	for i = 0, 3 do
+		makePart(fill, "DockPlank", Vector3.new(1.15, 0.3, 3.4),
+			CFrame.new(POND_POS.X - 15 + i * 1.35, 0.55, POND_POS.Z), Color3.fromRGB(146, 104, 58))
+	end
+	for _, dz in ipairs({ -1.4, 1.4 }) do
+		makePart(fill, "DockPost", Vector3.new(0.45, 1.1, 0.45),
+			CFrame.new(POND_POS.X - 10.2, 0.1, POND_POS.Z + dz), Color3.fromRGB(121, 85, 58))
+	end
+	for _, sp in ipairs({ { -6, -4 }, { 4, 5 }, { 8, -6 } }) do
+		local lily = makePart(fill, "LilyPad", Vector3.new(0.12, 2.6, 2.6),
+			CFrame.new(POND_POS.X + sp[1], 0.4, POND_POS.Z + sp[2]) * CFrame.Angles(0, 0, math.rad(90)),
+			Color3.fromRGB(64, 160, 70))
+		lily.Shape = Enum.PartType.Cylinder
+		lily.CanCollide = false
+	end
+
+	-- Hills: four large half-buried spheres near the meadow corners,
+	-- a shade darker than the meadow; two of them wear a tree.
+	for i, h in ipairs(HILL_SPOTS) do
+		local hill = makePart(fill, "Hill", Vector3.new(60, 60, 60),
+			CFrame.new(h.x, -16.5, h.z), Color3.fromRGB(88, 165, 62), Enum.Material.Grass)
+		hill.Shape = Enum.PartType.Ball
+		if i == 1 or i == 3 then
+			buildTree(fill, h.x, h.z, i + 2, 13.5)
+		end
+	end
+
+	-- The second arch, where the lane is 55% run: two posts and a
+	-- rainbow-striped beam, striped on both faces.
+	local archPos, archDir = sampleLane(LANE_LENGTH * 0.55)
+	local archSide = Vector3.new(-archDir.Z, 0, archDir.X)
+	for _, sgn in ipairs({ -1, 1 }) do
+		local pp = archPos + archSide * (8.5 * sgn)
+		makePart(fill, "ArchPost", Vector3.new(2.2, 11, 2.2), CFrame.new(pp.X, 5.5, pp.Z),
+			Color3.fromRGB(90, 200, 220))
+	end
+	local beamCf = CFrame.lookAt(Vector3.new(archPos.X, 11.6, archPos.Z),
+		Vector3.new(archPos.X + archSide.X, 11.6, archPos.Z + archSide.Z))
+	makePart(fill, "ArchBeam", Vector3.new(3.5, 4.2, 19.6), beamCf, Color3.fromRGB(255, 170, 60))
+	for i, sc in ipairs(rainbowPalette) do
+		for _, f in ipairs({ -1.83, 1.83 }) do
+			local stripe = makePart(fill, "ArchStripe", Vector3.new(0.3, 4.4, 2.6),
+				beamCf * CFrame.new(f, 0, -7.5 + (i - 1) * 3), sc, Enum.Material.Neon)
+			stripe.CanCollide = false
+		end
+	end
+
+	-- Bushes and rocks share the scatter's manners: off the lane, the
+	-- plots and their paths, the plaza, the pond, the hills.
+	local function scatterClear(x, z, laneDist)
+		if distToLane(x, z) < laneDist then
+			return false
+		end
+		if plotAt(x, z) then
+			return false
+		end
+		if math.sqrt(x ^ 2 + (z - 22) ^ 2) < 37 then
+			return false
+		end
+		if math.sqrt((x - POND_POS.X) ^ 2 + (z - POND_POS.Z) ^ 2) < 20 then
+			return false
+		end
+		if nearHill(x, z, 27) or nearMonument(x, z, 12) then
+			return false
+		end
+		for _, plot in ipairs(plots) do
+			local ux, uz = plot.center.X / PLOT_RADIUS, plot.center.Z / PLOT_RADIUS
+			local along = x * ux + z * uz
+			if along > 10 and along < 100 and math.abs(x * uz - z * ux) < 4 then
+				return false -- on a stone path
+			end
+			if math.sqrt((x - plot.center.X) ^ 2 + (z - plot.center.Z) ^ 2) < 27 then
+				return false
+			end
+		end
+		return true
+	end
+
+	local bushColors = { Color3.fromRGB(58, 150, 66), Color3.fromRGB(72, 170, 76) }
+	local bushes = 0
+	local bushTries = 0
+	while bushes < 40 and bushTries < 800 do
+		bushTries += 1
+		local a = rand() * math.pi * 2
+		local r = 20 + rand() * 175
+		local bx, bz = math.cos(a) * r, math.sin(a) * r
+		if scatterClear(bx, bz, 13) then
+			local n = 2 + math.floor(rand() * 2)
+			for j = 1, n do
+				local ox, oz = (rand() - 0.5) * 2.6, (rand() - 0.5) * 2.6
+				local br = 1.1 + rand() * 0.9
+				local b = makePart(fill, "Bush", Vector3.new(br * 2, br * 2, br * 2),
+					CFrame.new(bx + ox, br * 0.75, bz + oz), bushColors[((bushes + j) % 2) + 1])
+				b.Shape = Enum.PartType.Ball
+				b.CanCollide = false
+			end
+			bushes += 1
+		end
+	end
+
+	local rocks = 0
+	local rockTries = 0
+	while rocks < 24 and rockTries < 600 do
+		rockTries += 1
+		local a = rand() * math.pi * 2
+		local r = 20 + rand() * 175
+		local rx, rz = math.cos(a) * r, math.sin(a) * r
+		if scatterClear(rx, rz, 12) then
+			local s = 0.9 + rand() * 1.3
+			makePart(fill, "Rock", Vector3.new(s * 1.7, s, s * 1.3),
+				CFrame.new(rx, s * 0.32, rz) * CFrame.Angles(0, rand() * math.pi, math.rad(8)),
+				Color3.fromRGB(148, 150, 156))
+			rocks += 1
+		end
+	end
+end
+
+--====================================================================--
 -- Tier monuments: three oversized statues along the lane, themed on
--- the roster's stars — simple bold shapes, each with a floating sign.
+-- the roster's stars — simple bold shapes, each with a framed plaque.
 --====================================================================--
 
 do
@@ -732,9 +1023,11 @@ do
 		Color3.fromRGB(190, 110, 255), Enum.PartType.Cylinder, Enum.Material.Neon)
 	monumentPart("Handle", Vector3.new(1.2, 3.6, 1.2), CFrame.new(spot.X + 4.9, 4.2, spot.Z),
 		Color3.fromRGB(236, 214, 178))
-	makeSign(monuments, "Sign", Vector3.new(14, 3.6, 0.6), spot + Vector3.new(0, 13.8, 0),
-		Vector3.new(50, 13.8, -42), Color3.fromRGB(147, 51, 234),
-		"COSMIC CAPPUCCINO", "Brainrot God • $150K • +$5.2K/s", Color3.fromRGB(255, 255, 255), 32)
+	makeFramedSign(monuments, "Sign", 14, 3.6, spot + Vector3.new(0, 13.8, 0),
+		Vector3.new(50, 13.8, -42), Color3.fromRGB(147, 51, 234), {
+			{ text = "COSMIC CAPPUCCINO", font = Enum.Font.FredokaOne, size = 32, w = 1.25 },
+			{ text = "Brainrot God • $150K • +$5.2K/s", font = Enum.Font.GothamBold, size = 22, w = 1 },
+		}, 0)
 
 	-- (2) The giant DJ Banana: a great yellow curve wearing headphones.
 	spot = MONUMENT_SPOTS[2]
@@ -749,9 +1042,11 @@ do
 		Color3.fromRGB(40, 40, 48), Enum.PartType.Cylinder)
 	monumentPart("PhoneCupR", Vector3.new(1.1, 3.4, 3.4), CFrame.new(spot.X + 3.6, 10.4, spot.Z),
 		Color3.fromRGB(40, 40, 48), Enum.PartType.Cylinder)
-	makeSign(monuments, "Sign", Vector3.new(12, 3.6, 0.6), spot + Vector3.new(0, 15, 0),
-		Vector3.new(-63, 15, 13), Color3.fromRGB(255, 190, 40),
-		"DJ BANANA", "Common • $75 • +$2/s", Color3.fromRGB(255, 255, 255), 32)
+	makeFramedSign(monuments, "Sign", 12, 3.6, spot + Vector3.new(0, 15, 0),
+		Vector3.new(-63, 15, 13), Color3.fromRGB(255, 190, 40), {
+			{ text = "DJ BANANA", font = Enum.Font.FredokaOne, size = 32, w = 1.25 },
+			{ text = "Common • $75 • +$2/s", font = Enum.Font.GothamBold, size = 22, w = 1 },
+		}, 0)
 
 	-- (3) The giant Cactus Cowboy: green barrel arms and a wide hat.
 	spot = MONUMENT_SPOTS[3]
@@ -767,9 +1062,11 @@ do
 		hatBrown, Enum.PartType.Cylinder)
 	monumentPart("HatTop", Vector3.new(2.4, 4.2, 4.2), CFrame.new(spot.X, 12.6, spot.Z) * flat,
 		hatBrown, Enum.PartType.Cylinder)
-	makeSign(monuments, "Sign", Vector3.new(12, 3.6, 0.6), spot + Vector3.new(0, 15.2, 0),
-		Vector3.new(48, 15.2, 30), cactusGreen,
-		"CACTUS COWBOY", "Rare • $800 • +$24/s", Color3.fromRGB(255, 255, 255), 32)
+	makeFramedSign(monuments, "Sign", 12, 3.6, spot + Vector3.new(0, 15.2, 0),
+		Vector3.new(48, 15.2, 30), cactusGreen, {
+			{ text = "CACTUS COWBOY", font = Enum.Font.FredokaOne, size = 32, w = 1.25 },
+			{ text = "Rare • $800 • +$24/s", font = Enum.Font.GothamBold, size = 22, w = 1 },
+		}, 0)
 end
 
 --====================================================================--
@@ -1332,38 +1629,121 @@ onPrompt = function(ent, player)
 end
 
 --====================================================================--
--- The SHOWCASE ROW: the whole roster on pedestals in two arcs beside
--- the spawn, each brainrot a static build from the same factory, with
--- its nameplate overhead and a price board in front. The full
--- collection in a single frame — the roster IS the pitch.
+-- The BRAINROT HALL OF FAME: the whole roster staged at spawn on a
+-- two-tier circular stage — the six lower tiers on the front arc of
+-- the low tier, the six higher tiers elevated behind them — each on
+-- its own pedestal with a nameplate overhead and a small framed info
+-- board tilted up at its foot. A framed backdrop wall and two
+-- spotlight beams finish the stage. The full collection in a single
+-- frame — the roster IS the pitch.
 --====================================================================--
 
 do
-	local showcase = Instance.new("Folder")
-	showcase.Name = "Showcase"
-	showcase.Parent = world
-	local spawnPoint = Vector3.new(0, 0, 34)
-	local anglesA = { 200, 212, 224, 236, 248, 260 } -- left arc, roster 1-6
-	local anglesB = { 280, 292, 304, 316, 328, 340 } -- right arc, roster 7-12
+	local hall = Instance.new("Folder")
+	hall.Name = "HallOfFame"
+	hall.Parent = world
+	local centre = Vector3.new(0, 0, 12)
+	local stone = Color3.fromRGB(228, 224, 214)
+	local gold = Color3.fromRGB(255, 205, 60)
+	local flat = CFrame.Angles(0, 0, math.rad(90)) -- stands a cylinder upright
+
+	-- The two-tier stage: light-stone discs with a Neon ring on each
+	-- tier's edge (a thin, slightly wider disc buried at mid-height,
+	-- so only its glowing rim shows).
+	local function stageDisc(name, size, y, color, material)
+		local d = makePart(hall, name, size, CFrame.new(centre.X, y, centre.Z) * flat, color, material)
+		d.Shape = Enum.PartType.Cylinder
+		return d
+	end
+	stageDisc("StageLow", Vector3.new(0.6, 32, 32), 0.3, stone)
+	stageDisc("StageHigh", Vector3.new(1.2, 24, 24), 0.6, stone)
+	local ringLow = stageDisc("RingLow", Vector3.new(0.16, 32.7, 32.7), 0.34, gold, Enum.Material.Neon)
+	ringLow.CanCollide = false
+	local ringHigh = stageDisc("RingHigh", Vector3.new(0.16, 24.7, 24.7), 0.9, gold, Enum.Material.Neon)
+	ringHigh.CanCollide = false
+
+	-- The backdrop wall behind the stage, in the framed sign language
+	-- at stage scale.
+	makeFramedSign(hall, "Backdrop", 30, 7, Vector3.new(0, 5.8, -7),
+		Vector3.new(0, 5.8, 34), gold, {
+			{ text = "★ BRAINROT HALL OF FAME ★", font = Enum.Font.FredokaOne, size = 54, color = gold, w = 1 },
+		}, 2)
+
+	-- Two spotlight rigs flanking the backdrop, their translucent
+	-- beams angled down onto the stage's front displays.
+	for _, sgn in ipairs({ -1, 1 }) do
+		local fx, fz = 17 * sgn, -4
+		makePart(hall, "SpotPole", Vector3.new(0.5, 14, 0.5), CFrame.new(fx, 7, fz),
+			Color3.fromRGB(45, 45, 58))
+		makePart(hall, "SpotBox", Vector3.new(1.7, 1.3, 1.7), CFrame.new(fx, 14.4, fz),
+			Color3.fromRGB(30, 30, 40))
+		local from = Vector3.new(fx, 14.2, fz)
+		local to = Vector3.new(5 * sgn, 1.5, 20)
+		local mid = (from + to) / 2
+		local beam = makePart(hall, "SpotBeam", Vector3.new((to - from).Magnitude, 3, 3),
+			CFrame.lookAt(mid, to) * CFrame.Angles(0, math.rad(90), 0),
+			Color3.fromRGB(255, 244, 200), Enum.Material.Neon)
+		beam.Shape = Enum.PartType.Cylinder
+		beam.Transparency = 0.82
+		beam.CanCollide = false
+		beam.CanQuery = false
+	end
+
+	-- The twelve displays. Front arc: roster 1–6 on the low tier,
+	-- facing the spawn. Back arc: roster 7–12 on the high tier,
+	-- facing the audience over the front row.
+	local frontAngles = { -55, -33, -11, 11, 33, 55 }
+	local backAngles = { -75, -45, -15, 15, 45, 75 }
 	for idx, def in ipairs(Brainrots.Characters) do
-		local deg = idx <= 6 and anglesA[idx] or anglesB[idx - 6]
-		local a = math.rad(deg)
-		local px = math.cos(a) * 22
-		local pz = 34 + math.sin(a) * 22
 		local tier = Brainrots.Tiers[def.tier]
-		local ped = makePart(showcase, "Pedestal", Vector3.new(1.2, 3.4, 3.4),
-			CFrame.new(px, 0.6, pz) * CFrame.Angles(0, 0, math.rad(90)), tier.color)
-		ped.Shape = Enum.PartType.Cylinder
+		local front = idx <= 6
+		local deg = front and frontAngles[idx] or backAngles[idx - 6]
+		local a = math.rad(deg)
+		local radius = front and 13.5 or 10
+		local topY = front and 0.6 or 1.2
+		local px = centre.X + math.sin(a) * radius
+		local pz = centre.Z + (front and math.cos(a) or -math.cos(a)) * radius
+
+		local disp = Instance.new("Folder")
+		disp.Name = "Display" .. idx
+		disp.Parent = hall
+		makePart(disp, "PedestalBase", Vector3.new(3.4, 0.5, 3.4), CFrame.new(px, topY + 0.25, pz), stone)
+		makePart(disp, "PedestalColumn", Vector3.new(1.7, 1.1, 1.7), CFrame.new(px, topY + 1.05, pz), stone)
+		local plateTop = makePart(disp, "PedestalPlate", Vector3.new(3.1, 0.25, 3.1),
+			CFrame.new(px, topY + 1.725, pz), tier.color, Enum.Material.Neon)
+		plateTop.CanCollide = false
+
 		local model = buildCharacterModel(def, nil)
-		model.Parent = showcase
+		model.Parent = disp
+		local standY = topY + 1.85
 		model:SetPrimaryPartCFrame(CFrame.lookAt(
-			Vector3.new(px, 1.45, pz), Vector3.new(spawnPoint.X, 1.45, spawnPoint.Z)))
-		local toSpawn = Vector3.new(spawnPoint.X - px, 0, spawnPoint.Z - pz).Unit
-		local signPos = Vector3.new(px, 1.5, pz) + toSpawn * 2.9
-		makeSign(showcase, "PriceSign", Vector3.new(5.4, 2.5, 0.35), signPos,
-			spawnPoint + Vector3.new(0, 1.5, 0), tier.color, def.name,
-			Brainrots.FormatMoney(def.cost) .. " • +" .. Brainrots.FormatMoney(def.income) .. "/s",
-			Color3.fromRGB(255, 255, 255), 26)
+			Vector3.new(px, standY + 0.25, pz), Vector3.new(0, standY + 0.25, 34)))
+
+		-- The display's nameplate shows NAME + TIER only, a touch
+		-- closer and staggered so neighbours never collide.
+		local tierScale = 1 + (tier.order - 1) * (0.35 / 6)
+		local plate = model.PrimaryPart:FindFirstChild("Nameplate")
+		if plate then
+			plate.MaxDistance = 120
+			plate.StudsOffset = Vector3.new(0, 5.5 * (def.scale or 1) * tierScale + (idx % 3) * 0.85, 0)
+			local sub = plate:FindFirstChild("Sub")
+			if sub then
+				sub.Text = def.tier
+			end
+		end
+
+		-- A small framed info board on a short post at the display's
+		-- foot, tilted up toward the audience, trimmed in tier colour.
+		local outDir = front and Vector3.new(math.sin(a), 0, math.cos(a)) or Vector3.new(0, 0, 1)
+		local bx, bz = px + outDir.X * 2.3, pz + outDir.Z * 2.3
+		local boardY = topY + 1.15
+		makeFramedSign(disp, "InfoBoard", 5.2, 1.9, Vector3.new(bx, boardY, bz),
+			Vector3.new(bx + outDir.X * 10, boardY, bz + outDir.Z * 10), tier.color, {
+				{ text = def.name, font = Enum.Font.FredokaOne, size = 20, color = tier.color, w = 1.15 },
+				{ text = def.tier, font = Enum.Font.GothamBold, size = 19, w = 0.9 },
+				{ text = Brainrots.FormatMoney(def.cost) .. " • +" .. Brainrots.FormatMoney(def.income) .. "/s",
+					font = Enum.Font.GothamBold, size = 19, color = Color3.fromRGB(255, 205, 60), w = 0.9 },
+			}, 1, 20, topY)
 	end
 end
 
@@ -1450,6 +1830,8 @@ end
 -- The BANDIT: idles in his hideout, raids a random banked brainrot,
 -- and drops it if its owner gets close on the escape run. A tall red
 -- Neon beam rides over him for the whole raid, readable map-wide.
+-- (The beam is a Part, and Parts have no Visible property — it hides
+-- and shows through Transparency, like every other part in the game.)
 --====================================================================--
 
 local function buildBanditModel()
@@ -1493,10 +1875,12 @@ local function buildBanditModel()
 	add("HatTop", Vector3.new(1.0, 1.5, 1.5), CFrame.new(0, 4.6, 0) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(25, 25, 32), Enum.PartType.Cylinder)
 
 	-- The raid beam: hidden at home, lit whenever he is out stealing.
+	-- A Part hides via Transparency (Visible belongs to GuiObjects).
 	local beam = add("RaidBeam", Vector3.new(0.7, 26, 0.7), CFrame.new(0, 15.5, 0), Color3.fromRGB(255, 60, 60))
 	beam.Material = Enum.Material.Neon
-	beam.Transparency = 0.35
-	beam.Visible = false
+	beam.CanCollide = false
+	beam.CanQuery = false
+	beam.Transparency = 1
 
 	local plate = Instance.new("BillboardGui")
 	plate.Name = "Nameplate"
@@ -1528,7 +1912,7 @@ faceToward(bandit, LANE_POINTS[#LANE_POINTS])
 
 local function stepBandit(dt, t)
 	if bandit.beam then
-		bandit.beam.Visible = bandit.state == "hunting" or bandit.state == "escaping"
+		bandit.beam.Transparency = (bandit.state == "hunting" or bandit.state == "escaping") and 0.35 or 1
 	end
 	if bandit.state == "idle" then
 		if t >= bandit.nextRaidAt then
@@ -1722,6 +2106,38 @@ local function stepWave(dt, t)
 			wave.nextAt = t + 180
 			notifyAll("The tsunami passed... the lane is safe, for now.", "info")
 		end
+	end
+end
+
+--====================================================================--
+-- The GOLDEN RUSH: every ~4 minutes, 30 seconds where every walker
+-- that spawns is Gold and the great arch's rainbow stripes turn gold
+-- to match. Pure theatre on top of the mutation the defs already
+-- price — the rush changes no numbers, only the odds of the moment.
+--====================================================================--
+
+local goldenRush = { active = false, nextAt = os.clock() + 240, endsAt = 0 }
+local GOLD_TINT = Color3.fromRGB(255, 200, 40)
+
+local function setArchGold(on)
+	for _, s in ipairs(archStripes) do
+		s.part.Color = on and GOLD_TINT or s.color
+	end
+end
+
+local function stepGoldenRush(t)
+	if goldenRush.active then
+		if t >= goldenRush.endsAt then
+			goldenRush.active = false
+			goldenRush.nextAt = t + 240
+			setArchGold(false)
+			notifyAll("Golden Rush over!", "info")
+		end
+	elseif t >= goldenRush.nextAt then
+		goldenRush.active = true
+		goldenRush.endsAt = t + 30
+		setArchGold(true)
+		notifyAll("★ GOLDEN RUSH! Every walker is GOLD for 30 seconds! ★", "good")
 	end
 end
 
@@ -1996,6 +2412,7 @@ task.spawn(function()
 		stepCarried()
 		stepBandit(dt, t)
 		stepWave(dt, t)
+		stepGoldenRush(t)
 		stepFloaters(dt)
 
 		spawnAcc += dt
@@ -2008,7 +2425,7 @@ task.spawn(function()
 				end
 			end
 			if laneCount < 18 then
-				spawnWalker(1)
+				spawnWalkerAt(0, goldenRush.active and mutationByName.Gold or nil)
 			end
 		end
 
@@ -2032,4 +2449,4 @@ for _, d in ipairs(world:GetDescendants()) do
 		worldParts += 1
 	end
 end
-print("[Brainrot Heist] world built: 8 bases, a " .. math.floor(LANE_LENGTH) .. "-stud lane, one bandit, weather incoming, " .. worldParts .. " world parts")
+print("[Brainrot Heist] world built: 8 bases, a " .. math.floor(LANE_LENGTH) .. "-stud lane, one bandit, weather incoming, golden rushes on the clock, " .. worldParts .. " world parts")
