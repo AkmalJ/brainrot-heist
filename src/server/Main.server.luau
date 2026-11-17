@@ -75,6 +75,22 @@ local actors = Instance.new("Folder")
 actors.Name = "BrainrotActors"
 actors.Parent = Workspace
 
+--====================================================================--
+-- Self-healing place setup: make any fresh starter place host the game
+-- correctly — characters auto-load on join, and the starter ground
+-- (Baseplate, SpawnLocation, terrain) is cleared so it cannot sit above
+-- the procedural world's ground plane and bury it. Runs before any
+-- world building, so no manual place settings are ever needed.
+--====================================================================--
+
+Players.CharacterAutoLoads = true
+Workspace.Terrain:Clear()
+for _, child in ipairs(Workspace:GetChildren()) do
+	if child:IsA("BasePart") then
+		child:Destroy()
+	end
+end
+
 -- An anchored part with smooth faces. Collidable unless told otherwise.
 local function makePart(parent, name, size, cframe, color, material)
 	local p = Instance.new("Part")
