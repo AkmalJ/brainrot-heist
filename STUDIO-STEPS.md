@@ -1,170 +1,116 @@
-# STUDIO STEPS — Brainrot Heist, v2.1 update (owner's sheet)
+# STUDIO STEPS — MAGMA MAYHEM: Brainrot Volcano (owner's sheet)
 
-*For the account owner, in Roblox Studio, on the SAME experience that
-phase 1 published (already Public, play code already in its
-description). Do not create a new experience: everything below
-publishes over that one. Keep the play code in the description and
-keep the experience Public.*
+*For the account owner, in Roblox Studio, on the SAME experience that is
+already published (already Public, play code already in its description).
+Do not create a new experience: everything below publishes over that one.
+Keep the play code in the description and keep the experience Public.*
 
-You need three text files from the repository, open in any text editor:
+This is a full rebuild, so **all nine scripts are pasted fresh** — even ones
+whose names look familiar from the old game. Open each repository file in
+any text editor, select all (Ctrl+A), copy, and paste the whole contents
+over the script in its home below. Where a placeholder script already sits
+in a home, open it, select all, delete, and paste ours over it — the game's
+pieces are found by name and home, so both must match exactly.
 
-- `src/shared/Brainrots.luau`
-- `src/server/Main.server.luau`
-- `src/client/Client.client.luau`
+## 1. Paste the nine scripts
 
-**What changed in v2.1:** only `Main.server.luau` has new contents —
-a bug fix (the frozen-walkers bug from the last playtest), the new
-BRAINROT HALL OF FAME stage at spawn, framed signs everywhere, a
-filled-in meadow (plaza, paths, pond, hills, a second arch), and a new
-GOLDEN RUSH event. `Brainrots.luau` and `Client.client.luau` are
-unchanged; re-paste them only if you are setting up from scratch.
+| File in the repo | Home in Studio | Class | Name in Studio |
+| --- | --- | --- | --- |
+| `src/shared/Brainrots.luau` | ReplicatedStorage | ModuleScript | `Brainrots` |
+| `src/shared/Upgrades.luau` | ReplicatedStorage | ModuleScript | `Upgrades` |
+| `src/server/Main.server.luau` | ServerScriptService | Script | `Main` |
+| `src/server/Economy.luau` | ServerScriptService | ModuleScript | `Economy` |
+| `src/server/Conveyor.luau` | ServerScriptService | ModuleScript | `Conveyor` |
+| `src/server/Thieves.luau` | ServerScriptService | ModuleScript | `Thieves` |
+| `src/server/Eruption.luau` | ServerScriptService | ModuleScript | `Eruption` |
+| `src/server/Progression.luau` | ServerScriptService | ModuleScript | `Progression` |
+| `src/client/Client.client.luau` | StarterPlayer → StarterPlayerScripts | LocalScript | `Client` |
+| `src/client/Interface.luau` | StarterPlayer → StarterPlayerScripts | ModuleScript | `Interface` |
 
-**No place settings to fix by hand.** The Main script heals the place
-itself the moment it loads: it switches character auto-load on and
-clears the starter ground (Baseplate, SpawnLocation, terrain) in code,
-so the procedural world can never be buried or spawn-locked. Paste
-the three scripts, publish, done.
+Delete any leftover scripts from the old game that are not in this table
+(an old `Main` helper, an old HUD script) — two captains sink the ship.
 
----
-
-## 1. Paste the three scripts
-
-Open the experience in **Roblox Studio** (Creator Dashboard → the
-experience → **Edit**, or Studio's home screen → the experience).
-In the **Explorer** panel (View → Explorer if hidden), put each file's
-whole contents into its home below. Where the starter place still has
-a placeholder script in that home, open it, select all (Ctrl+A),
-delete, and paste ours over it — the game's pieces are found by name
-and home, so both must match exactly:
-
-| Script | Home | Name |
-| --- | --- | --- |
-| ModuleScript | ReplicatedStorage | `Brainrots` |
-| Script | ServerScriptService | `Main` |
-| LocalScript | StarterPlayer → StarterPlayerScripts | `Client` |
-
-1. **ReplicatedStorage** → the ModuleScript named `Brainrots` →
-   paste the whole contents of `src/shared/Brainrots.luau`.
-2. **ServerScriptService** → the Script named `Main` →
-   paste the whole contents of `src/server/Main.server.luau`.
-3. **StarterPlayer → StarterPlayerScripts** → the LocalScript named
-   `Client` → paste the whole contents of `src/client/Client.client.luau`.
+**No place settings to fix by hand.** The Main script heals the place the
+moment it loads and builds the whole island procedurally — volcano, parade
+conveyor, Ashen Beach and the bases — so there is nothing to sculpt and no
+terrain to clear. Paste the nine scripts, playtest, publish, done.
 
 ## 2. Playtest (F5)
 
-Press **Play** (F5). Check, in order:
+Press **Play** (F5) and check, in order:
 
-- [ ] You spawn and are teleported to stand in front of a base plot
-      whose framed sign carries **your name**.
-- [ ] HUD, top-right: **$100**, "+$0/s", a rebirth line. A help line
-      sits bottom-left and a purple **REBIRTH** button bottom-right.
-      The top-left corner stays empty (that's Roblox's own menu
-      corner).
-- [ ] Around the spawn: two framed totems — a pink-trimmed
-      **BRAINROT HEIST** welcome sign and a gold-trimmed **HOW TO
-      PLAY** rules board (dark boards, neon trim, wooden posts) —
-      and the **BRAINROT HALL OF FAME**: a two-tier stone stage with
-      glowing gold rings, all 12 brainrots on pedestals (base, column,
-      glowing tier-coloured top plate), the six higher tiers elevated
-      at the back, a backdrop wall reading **★ BRAINROT HALL OF
-      FAME ★**, two spotlights beaming onto the stage, and a small
-      framed info board in front of each pedestal (name / tier /
-      price • income).
-- [ ] The meadow is filled in: a light-stone **plaza** under the
-      spawn quarter, stone **paths** running out to every plot, a
-      **pond** with a plank dock and lily pads, green **hills** in
-      the corners (two topped with trees), and bushes and rocks
-      scattered between the trees and flowers.
-- [ ] **The walkers are MOVING**: eight brainrots are already
-      strolling the pastel-rainbow lane, each with a nameplate
-      ("Noodle Newt +$1/s • Common", prices on their prompts). One
-      of them is **GOLD** and one is **RAINBOW**, both sparkling.
-      Epic-and-above walkers wear a gold crown; Legendary-and-above
-      float a Neon halo. ⚠️ **If they stand frozen, STOP here:**
-      open **View → Output**, take a photo of the red error line,
-      and send it to the agent before doing anything else — a frozen
-      world is exactly the bug this version fixes, and the error
-      line is how the agent finds any new one.
-- [ ] Along the lane: fences and lamp posts, a **second rainbow
-      arch** halfway down, and three giant statues — a cappuccino
-      cup, a banana with headphones, a cactus with a cowboy hat —
-      each with a framed plaque.
-- [ ] Your plot has a low fence (posts and a rail) along its back and
-      sides and a glowing **lantern** at its entrance.
-- [ ] Walk to a cheap one (Noodle Newt, $25), press **E** on its
-      **Buy** prompt: it rides over your head, slowly spinning, and
-      the HUD's carry line appears.
-- [ ] Run back onto **your own plot**: the brainrot banks onto a pad,
-      the pad lights up in its tier colour, the brainrot bobs gently,
-      a green "+$" floats up, and your cash starts climbing. Your
-      base sign now shows your income.
-- [ ] At about **55 seconds** (with something banked): a banner
-      announces the **BANDIT**; a tall red beam glows over him the
-      whole time he is hunting and escaping, and it is gone once he
-      is back home. He grabs a banked brainrot and flees — chase him
-      and get close, he drops it. Pick it up, bank it again.
-- [ ] At about 2.5 minutes: a red **TSUNAMI** warning banner, and the
-      lane slabs pulse red for 10 seconds; then a blue wall of water
-      with a tall foam crest sweeps the lane and washes away anything
-      standing on it. Banked brainrots survive.
-- [ ] At about **4 minutes**: a **★ GOLDEN RUSH! ★** banner — the
-      main arch's rainbow stripes turn gold, and every walker that
-      spawns for the next 30 seconds is Gold. (It comes back every
-      ~4 minutes; fine to skip in a short test.)
-- [ ] Stop with **Shift+F5**. If anything above failed, open
-      **View → Output**, take a photo/screenshot of any red error
-      lines, and send it to the agent before going on.
+- [ ] You spawn at your **Ashen Beach base**, on a plot whose sign carries
+      **your name**.
+- [ ] The **top bar** sits top-right: 💰 cash, 💎 gems, 📈 $/s, ✖ multiplier,
+      🔥 rekindles. The top-left corner is empty (Roblox's buttons live there).
+- [ ] Brainrots **parade** past the crater on the conveyor. Walk up to one
+      and buy it with its prompt (**E**) — a cha-ching, and it rides on your
+      back with its name tag.
+- [ ] Carry it home: the carried banner shows its name; step onto a free
+      pedestal at your base and it banks.
+- [ ] The pedestal **ticks**: your $/s rises in the top bar and cash builds
+      up. Press **COLLECT** (bottom-left, or **F**) — a giant **+$** fountain
+      pops and your cash jumps.
+- [ ] **Lock test:** press the lock button (right side, or **L**). It flips
+      to 🔒 LOCKED with a countdown, then ⏳ COOLDOWN, then back to OPEN.
+- [ ] **Index opens:** INDEX (bottom-right) shows the brainrot grid —
+      owned ones in colour, the rest as ??? silhouettes. Tap one for its
+      joke line. UPGRADES, REKINDLE and QUEST panels open too.
+- [ ] If a goblin chases you or the volcano flashes an **ERUPTION warning**,
+      the red **RUN HOME!** banner appears while you are carrying.
+- [ ] Stop (Shift+F5). Fix nothing by hand — if a check fails, note which
+      one and tell me; the fix belongs in the scripts, not in Studio.
 
-(Rebirth confetti needs a $25K rebirth, so it won't show in a short
-playtest — it fires over your plot the first time anyone rebirths.)
+## 3. Publish
 
-## 3. Publish the finished place
+File → **Publish to Roblox** (over the same experience). Confirm the
+experience page still shows it **Public** with the play code in the
+description.
 
-**File → Publish to Roblox** (Alt+P). This overwrites the same
-experience's place with the finished game — do **not** use
-"Publish As..." / create a new game. Confirm it stays **Public**.
+## 4. Export the place file
 
-## 4. Screenshots (while the game runs in Studio)
+File → **Save to File As…** → save as **`game.rbxl`** and replace the
+`game.rbxl` in the repository root with it. The hand-in gate checks that
+the scripts inside this file match `src/` byte for byte, so this export
+must happen **after** the final paste and publish — if any script changes
+afterwards, export again.
 
-Play again (F5) and capture four shots of the running game, **1280×720**
-(16:9). Easiest: size the Studio window so the 3D view is 16:9, then
-use **View → Screenshot**, or Windows' **Win+Shift+S** snip saved as
-PNG. Use these exact file names:
+## 5. Take the four screenshots
 
-| File | What it shows |
-| --- | --- |
-| `01-cover.png` | The cover: stand at the spawn looking across the **Hall of Fame stage** toward the **BRAINROT HEIST** arch — framed welcome and rules totems, the staged roster on its pedestals with nameplates, strolling brainrots beyond, base plots around. |
-| `02-base.png` | Your base with at least one banked brainrot bobbing on a lit pad, "+$" floating, your name and income on the framed base sign, the treasure chest in the corner. |
-| `03-steal.png` | A brainrot spinning over your head mid-dash home (buy one — or steal one if a second player is in — and run), carry line on the HUD. |
-| `04-wave.png` | The tsunami: when the warning banner fires, get a view over the lane — red pulsing slabs if you catch the warning, the blue wall with its foam crest if you catch the sweep. |
+With the game **running** (F5, Play — never while Studio has paused it),
+capture at 1280×720 or as close as your screen allows. Roblox's own menu
+buttons overlay the top-left of the play view; the game's HUD already
+keeps that corner clear, so just frame the action centre-right.
 
-Keep HUD text out of the very top-left corner of the frame (Roblox's
-menu buttons sit there) — the game's own HUD already avoids it.
+1. **`1-start.png`** — your rich base mid-event: pedestals busy, event
+   banner up, top bar fat with numbers. *This one becomes the thumbnail.*
+2. **`2-play.png`** — the RUN HOME dash: you carrying a brainrot while the
+   eruption WARNING banner counts down (wait for a warning if you can).
+3. **`3-index.png`** — the INDEX panel open over your base, grid showing
+   owned colours and ??? silhouettes.
+4. **`4-upgrades.png`** — the UPGRADES panel open (REKINDLE panel visible
+   is fine too), tiers and costs readable.
 
-## 5. Icon and thumbnail (Creator Dashboard)
+Each screenshot must end up **at most 256 KiB**. Studio captures are
+usually bigger than that — send me the raw files and I will re-encode them
+under the cap **keeping these exact names**, then commit them into
+`screenshots/` in the repo (replacing the old three).
 
-On **create.roblox.com** → your experience → **Configure**:
+## 6. Creator Dashboard: icon + thumbnail
 
-1. **Basic Settings → Game Icon:** upload a square version of the
-   cover picture (crop `01-cover.png` to a square).
-2. **Thumbnails:** add `01-cover.png` as the **first** thumbnail. It
-   must be the *same picture* as `screenshots/01-cover.png` in the
-   entry.
-3. Both go through Roblox moderation. The entry cannot be submitted
-   while either is still in review or rejected — check back until
-   both show approved, and tell the agent when they are.
+On https://create.roblox.com/dashboard/creations: select the experience →
+**Configurations → Places** → its start place (marked with a star):
 
-## 6. Export the place file
+- **Icon:** upload a square picture (512×512 is best) — the volcano/cast
+  art or a tight crop of screenshot 1.
+- **Thumbnails → Experience Detail Page tab:** upload **`1-start.png`**
+  (the exact same picture as the repo screenshot) as the **first**
+  thumbnail. The hand-in gate compares them: the first thumbnail must be
+  the same picture as one of the entry's screenshots.
 
-Back in Studio: **File → Save to File As…** → save as **`game.rbxl`**
-(the binary place format — **not** `.rbxlx`).
-
-## 7. Send back to the agent
-
-- `game.rbxl`
-- `01-cover.png`, `02-base.png`, `03-steal.png`, `04-wave.png`
-- A note that the icon and first thumbnail are **approved** (or still
-  in review)
-
-The agent fills in `PLAY.json` from phase 1, drops these files into
-the repository, runs the kit's check, and hands the entry in.
+Roblox reviews each upload. **Wait until the experience's public page
+shows both the icon and the thumbnail** before the entry is submitted —
+the play link is refused while either is missing, still in review, or the
+thumbnail does not match a screenshot. The description (with the play
+code), the genre and the content questions were set on the first publish;
+just confirm the experience is still **Public**.

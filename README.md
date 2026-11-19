@@ -1,110 +1,89 @@
-# BRAINROT HEIST
+# MAGMA MAYHEM: Brainrot Volcano
 
-A 3D brainrot collector-and-stealer for Roblox, built for make.fun's
+A volcanic-island brainrot tycoon for Roblox, built for make.fun's
 **roblox-brainrot-01** bounty ("Make the best AI Roblox brainrot game").
 
-Absurd meme characters stroll down a winding pastel-rainbow lane through
-a bright meadow. Buy one, hoist it over your head — it slowly spins up
-there — and dash home to bank it on your base, where it bobs on its pad
-and earns you cash every second. But your rivals can steal what you
-bank, a **BANDIT** raids bases on a timer under a tall red beam, every
-few minutes a **TSUNAMI** washes the whole lane clean, and every few
-minutes after that a **GOLDEN RUSH** turns every new walker Gold for
-30 seconds. Bank fast, steal faster, rebirth for a permanent income
-multiplier — celebrated with a confetti burst over your plot.
+A living volcano squats in the middle of a tropical island, and it is having
+a day. Brainrots — 44 absurd meme creatures across nine rarities — parade out
+of the caldera on a conveyor belt. Buy one, hoist it onto your back, and run
+it home to your base on Ashen Beach before a magma goblin bonks it off you,
+a rival player steals it, or the volcano erupts and the whole island scrambles
+for cover. Banked brainrots print cash every second on their pedestals. Bank
+fast, lock your base, and when the mountain offers, throw it all into the
+caldera and **Rekindle** for permanent power.
 
-## How to play
+## The loop
 
-1. **Buy** — walk up to a brainrot on the lane and use its prompt (E).
-   Rarer brainrots cost more and earn more.
-2. **Carry** — your prize rides over your head, slowly spinning. You can
-   only carry one.
-3. **Bank** — step onto your own base plot (the colour-coded ring plot
-   with your name on its framed sign, a Neon trim frame, a low fence,
-   a lantern, an awning and a treasure chest). Your brainrot takes a
-   pad and starts paying you every second, with a floating "+$" over
-   its head.
-4. **Steal** — hold the prompt on a rival's banked brainrot for 1.5
-   seconds to grab it, then run it home. Freshly stolen brainrots can't
-   be re-stolen for 5 seconds.
-5. **Survive the BANDIT** — roughly every minute he raids a random base
-   and runs for his hideout with the loot; a tall red Neon beam marks
-   him for the whole raid, so you always know where to chase. If the
-   owner gets close to him on the escape run, he drops the brainrot as
-   a loose carryable anyone can pick up. If he reaches the hideout,
-   it's gone.
-6. **Survive the TSUNAMI** — every ~3 minutes a wall of water sweeps
-   the lane after a 10-second warning, and during the warning the lane
-   slabs themselves pulse red. Anything standing on the lane —
-   walking, loose, or carried — is washed away. Banked brainrots
-   are safe.
-7. **Catch the GOLDEN RUSH** — every ~4 minutes, a 30-second rush:
-   every walker that spawns is Gold (x2 income), and the great arch's
-   rainbow stripes turn gold while it lasts.
-8. **Rebirth** — the HUD button trades your cash and collection for a
-   permanent +50% income multiplier and a confetti celebration.
-   Prices: $25K, $100K, $400K, ...
+1. **Buy** — walk the parade by the crater and use a brainrot's prompt (E)
+   to buy it. Rarer brainrots cost more and earn far more per second.
+2. **Carry** — your prize rides on your back with its name tag showing. You
+   can carry one at a time, and carrying makes you a target.
+3. **Run home** — goblins chase carriers, rivals can steal, and when the
+   eruption warning sounds the HUD screams RUN HOME! Get it to your base.
+4. **Bank** — drop it on a pedestal at your base (the plot with your name on
+   the sign). It starts paying you every second, ticking up in the top bar.
+5. **Collect** — hit COLLECT (or F) to sweep your pedestals' earnings into
+   cash, with a giant +$ fountain over your head.
+6. **Protect** — lock your base on a timer so thieves and goblins bounce
+   off; bonk goblin thieves with your mallet when they come for your pads.
+7. **Grow** — spend cash on 4 upgrade tracks × 6 tiers, chase index
+   milestones, complete the Volcano Spirit's 15 contracts, and Rekindle to
+   reset for a permanent income multiplier, more pedestals and new zones.
 
-## The roster
+## Systems
 
-12 original characters across 7 rarity tiers — Common, Uncommon, Rare,
-Epic, Legendary, Mythic, and **Brainrot God** — from the humble
-**Noodle Newt** ($25) to the **Cosmic Cappuccino** ($150K, $5,200/s).
-Models grow with their tier (x1.0 at Common up to ~x1.35 at God);
-Epic-and-above wear a gold crown and Legendary-and-above float a Neon
-halo. Spawns can roll a mutation: **Gold x2**, **Diamond x3**, or
-**Rainbow x5** income, with a tinted body and a sparkle emitter to
-match. Rare-and-above brainrots wear a pillar of light in their tier
-colour, so the good stuff is visible across the meadow.
+- **The cast** — 44 brainrots, nine rarities (Common → Magma), each with its
+  own price, income rate and joke. Mutations (from pedestal rerolls) multiply
+  a banked brainrot's pay.
+- **The index** — every discovery is recorded; milestone finds (5/10/15/25/
+  35/44) pay permanent income bonuses, up to +25% and the Magma Crown.
+- **The volcano** — a full eruption cycle: calm, a red WARNING countdown
+  (the HUD counts the seconds), then ERUPTING — screen shake, falling ash,
+  lava — while carriers out in the open risk it all.
+- **Thieves** — magma goblins spawn, chase carriers and raid unlocked
+  bases; the mallet settles arguments. Base lock runs OPEN → LOCKED →
+  COOLDOWN, all counted live on the lock button.
+- **Events** — timed island events bend the parade and the prices, announced
+  on the banner with a live countdown.
+- **Upgrades** — 4 tracks × 6 tiers: faster feet, deeper pockets, stronger
+  pedestals, longer locks (data-driven from `src/shared/Upgrades.luau`).
+- **Rekindle** — the prestige loop: burn your cash and pedestals for a
+  permanent income multiplier, extra pedestals and a new island zone.
+- **Contracts** — 15 quests from the Volcano Spirit ("Bonk 12 magma
+  goblins", "Survive 3 eruptions", "Discover all 44 brainrots"…) paying cash
+  and gems, tracked on the QUEST panel with a progress bar.
+- **The HUD** — built entirely in code: cash/gems/income/multiplier top bar,
+  event and eruption banner, lock button with live state, buttons that show
+  live counts (INDEX 29/44, QUEST #7 · 3/12), stacked toasts, giant collect
+  feedback and the RUN HOME! banner. The top-left corner stays clear for
+  Roblox's own buttons, as it should.
 
-## The world
+## Controls
 
-Everything is built procedurally by the server script from plain
-parts — no external assets:
-
-- **One sign language** — every sign in the world is a framed totem:
-  a dark board with Neon trim and wooden posts, from the welcome sign
-  to the plot owner signs to the monument plaques.
-- **The hero vista at spawn** — a big BRAINROT HEIST welcome totem and
-  a HOW TO PLAY totem flank the spawn pad, so the game's name and
-  loop are the first thing in frame.
-- **The BRAINROT HALL OF FAME** — the full 12-brainrot roster staged
-  on a two-tier circular stage at spawn: the six lower tiers on the
-  front arc, the six higher tiers elevated behind them, each on a
-  pedestal with a nameplate and a framed info board (name, tier,
-  price, income), under a backdrop wall and two spotlight beams.
-  The whole collection in one screenshot.
-- **The lane** — an S-curve of pastel-rainbow slabs with entry and
-  exit gates, fences and lamp posts shadowing both sides, the signed
-  **BRAINROT HEIST** arch (rainbow-striped beam) over the middle, and
-  a second rainbow arch halfway down.
-- **Tier monuments** — three oversized statues along the lane: a giant
-  Cosmic Cappuccino with a Neon swirl ring, a giant DJ Banana wearing
-  headphones, and a giant Cactus Cowboy, each with a framed plaque.
-- **A built meadow** — a light-stone plaza under the spawn quarter,
-  segmented stone paths running out to every plot, a pond with a
-  plank dock and lily pads, green hills in the corners (two of them
-  tree-topped), and a seeded scatter of trees, flower bands, bushes
-  and rocks.
-- **8 colour-coded base plots** with pads, live income signs in the
-  framed style, Neon trim frames, low fences, entrance lanterns,
-  awnings and treasure chests; a richest-collectors board that
-  updates in-world; the Rebirth Shrine; the Bandit's hideout.
-
-## Files
-
-| File | What it is |
+| Input | Action |
 | --- | --- |
-| `main.ts` | The hand-in program: copies the place, `src/`, `screenshots/` and `PLAY.json` to the output and writes `dossier.json` with the vendored library. |
-| `vendor/makefun-roblox.ts` | make.fun's place library, byte for byte the kit's copy. |
-| `src/server/Main.server.luau` | Paste into a **Script** named `Main` in **ServerScriptService**. Builds the world and runs the whole game, server-authoritatively. It also heals the place itself: characters auto-load and the starter ground is cleared in code, so no manual place settings are needed. |
-| `src/shared/Brainrots.luau` | Paste into a **ModuleScript** named `Brainrots` in **ReplicatedStorage**. The roster, tiers, mutations, rebirth maths and money formatting, shared by server and client. |
-| `src/client/Client.client.luau` | Paste into a **LocalScript** named `Client` in **StarterPlayer > StarterPlayerScripts**. The HUD: cash/income top-right (top-left stays clear for Roblox's menu), carry line, banners, rebirth button. |
-| `default.project.json` | The Rojo project mapping the three scripts to those same homes. |
-| `game.rbxl` | The published place, saved from Studio in binary format. |
-| `PLAY.json` | The published experience's play link, place id and universe id. |
-| `screenshots/` | Captures of the game running in Studio; the first by name is the cover and the Roblox thumbnail. |
-| `STUDIO-STEPS.md` | The owner's click-by-click sheet for pasting, publishing, screenshotting and exporting. |
+| W A S D / joystick | Move |
+| E (prompt) | Buy a brainrot from the parade / interact |
+| Click / tap (mallet equipped) | Swing the mallet |
+| F | Collect pedestal cash |
+| L | Toggle base lock |
+| 1 / 2 / 3 / 4 | Toggle INDEX / UPGRADES / REKINDLE / QUEST |
+| Esc | Close the open panel |
+| On-screen buttons | COLLECT, lock, INDEX, UPGRADES, REKINDLE, QUEST |
 
-Movement is done by the server with `SetPrimaryPartCFrame` steps on a
-10 Hz loop — no physics, no DataStore; every session is a fresh heist.
+## Running it in Studio
+
+The game is a set of Luau scripts pasted into one published experience — the
+step-by-step owner's sheet is **STUDIO-STEPS.md**. In short:
+
+- `ReplicatedStorage`: `Brainrots`, `Upgrades` (ModuleScripts, from `src/shared/`)
+- `ServerScriptService`: `Main` (Script) + `Economy`, `Conveyor`, `Thieves`,
+  `Eruption`, `Progression` (ModuleScripts, from `src/server/`)
+- `StarterPlayer → StarterPlayerScripts`: `Client` (LocalScript) +
+  `Interface` (ModuleScript, from `src/client/`)
+
+The server builds the island procedurally when Main loads — volcano, parade
+conveyor, beaches and bases — so there is no terrain to sculpt by hand.
+`default.project.json` describes the same tree for Rojo users.
+`main.ts` is the make.fun hand-in program (pre-flight check + dossier);
+`PLAY.json` points at the published experience.
