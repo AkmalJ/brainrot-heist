@@ -9,9 +9,15 @@
 	     Game context (world data + per-player State store) that every
 	     server module shares.
 	  2. WORLD BUILDING — the whole volcanic island from plain parts:
-	     volcano with animated lava, the obsidian parade ring, three
-	     lava pools, three zones, eight player base plots, three rival
-	     NPC bases, Chief Magma's quest post and the shop plaza.
+	     a terraced, colour-zoned island; a volcano with animated
+	     lava and an irregular shouldered silhouette; the rainbow
+	     parade ring under a gantry gate; three lava pools; three
+	     dressed zones (mesa, watchtower, overlook); a bulb marquee
+	     over the spawn plaza; eight player base plots built as
+	     walled, canopied booths with entrance gantries; three rival
+	     NPC booths; a dock; and Chief Magma's quest post. The
+	     architecture pass follows STUDY-TOP10-DEEP.md — the top 10
+	     are enclosed, signed and eye-level, and so is this island.
 	  3. WIRING — requires Economy / Conveyor / Thieves / Eruption /
 	     Progression and calls their Init(Game) in dependency order.
 
@@ -96,6 +102,16 @@ bloom.Parent = Lighting
 --====================================================================--
 -- Small building helpers
 --====================================================================--
+
+-- Rebuilt fresh each run (same pattern as the Lighting effects
+-- above): if a previous run's folders are still around, clear them
+-- first so re-running this script never stacks a second island.
+for _, folderName in ipairs({ "MagmaWorld", "MagmaActors" }) do
+	local old = Workspace:FindFirstChild(folderName)
+	if old then
+		old:Destroy()
+	end
+end
 
 local world = Instance.new("Folder")
 world.Name = "MagmaWorld"
@@ -199,11 +215,57 @@ local function makeSignPost(parent, position, lookAtPoint, w, h, titleText, subT
 	return attachSign(board, titleText, subText)
 end
 
+-- A GANTRY sign: the totem's bigger sibling (STUDY-TOP10-DEEP.md —
+-- the top 10 all crown their worlds with signage at cover scale).
+-- Two FAT posts, a wide board with Neon trim, and optional carnival
+-- bulbs along the top edge. The board's Front face looks at
+-- `lookAtPoint`; returns (title, sub) exactly like makeSignPost, so
+-- dynamic signs (plot names) can be rewritten by their owners.
+local function makeGantrySign(parent, position, lookAtPoint, w, h, titleText, subText, trimColor, postColor, withBulbs)
+	local cf = CFrame.lookAt(position, Vector3.new(lookAtPoint.X, position.Y, lookAtPoint.Z))
+	local g = Instance.new("Model")
+	g.Name = "Gantry_" .. titleText:sub(1, 12)
+	g.Parent = parent
+	trimColor = trimColor or Color3.fromRGB(255, 120, 50)
+	postColor = postColor or Color3.fromRGB(84, 58, 40)
+	local postLen = position.Y + h / 2
+	for _, px in ipairs({ -w / 2 + 0.7, w / 2 - 0.7 }) do
+		makePart(g, "GantryPost", Vector3.new(1.15, postLen, 1.15),
+			cf * CFrame.new(px, (h / 2 - position.Y) / 2, 0),
+			postColor, Enum.Material.Wood)
+		-- A Neon collar where the post meets the board: a little
+		-- jewel of glow that reads at screenshot distance.
+		local collar = makePart(g, "PostCollar", Vector3.new(1.45, 0.5, 1.45),
+			cf * CFrame.new(px, h / 2 - 0.6, 0), trimColor, Enum.Material.Neon)
+		collar.CanCollide = false
+	end
+	local board = makePart(g, "Board", Vector3.new(w, h, 0.45), cf, Color3.fromRGB(34, 26, 28), Enum.Material.Wood)
+	makePart(g, "TrimTop", Vector3.new(w + 0.35, 0.3, 0.55), cf * CFrame.new(0, h / 2, 0), trimColor, Enum.Material.Neon)
+	makePart(g, "TrimBottom", Vector3.new(w + 0.35, 0.3, 0.55), cf * CFrame.new(0, -h / 2, 0), trimColor, Enum.Material.Neon)
+	if withBulbs then
+		-- Carnival bulbs marching along the board's top edge — the
+		-- marquee read from Ice Fish's cover, for a handful of parts.
+		local n = math.floor(w / 2.3)
+		for b = 0, n do
+			local bx = -w / 2 + 0.8 + b * ((w - 1.6) / n)
+			local bulb = makePart(g, "Bulb", Vector3.new(0.55, 0.55, 0.55),
+				cf * CFrame.new(bx, h / 2 + 0.5, 0), Color3.fromRGB(255, 202, 92), Enum.Material.Neon)
+			bulb.Shape = Enum.PartType.Ball
+			bulb.CanCollide = false
+		end
+	end
+	return attachSign(board, titleText, subText, nil, 56)
+end
+
 --====================================================================--
 -- Remotes — the client contract. Folder "MagmaRemotes" in
 -- ReplicatedStorage; Builder B's client builds against exactly these.
 --====================================================================--
 
+local oldRemotes = ReplicatedStorage:FindFirstChild("MagmaRemotes")
+if oldRemotes then
+	oldRemotes:Destroy()
+end
 local remotesFolder = Instance.new("Folder")
 remotesFolder.Name = "MagmaRemotes"
 remotesFolder.Parent = ReplicatedStorage
@@ -337,10 +399,49 @@ local function BuildIslandGround()
 	local foam = makeDisc(world, "ShoreFoam", 207, 0.5, CFrame.new(0, -1.55, 0),
 		Color3.fromRGB(240, 252, 255), Enum.Material.SmoothPlastic)
 	foam.CanCollide = false
-	-- The island: one great ash disc, top surface at Y = 0, in a warm
-	-- sunlit tone (bright grade — no more dusk grey).
+	-- The island: one great disc, top surface at Y = 0 (the playable
+	-- plane every system is tuned to), in warm sandstone — the top
+	-- 10 zone their ground in saturated colour, never raw grey.
 	makeDisc(world, "Island", 200, 4, CFrame.new(0, -2, 0),
-		Color3.fromRGB(150, 136, 128), Enum.Material.Slate)
+		Color3.fromRGB(163, 141, 120), Enum.Material.Slate)
+	-- A reef step ringing the shoreline, poking just above the surf:
+	-- the island gains a terraced edge instead of ending as a plate.
+	local reef = makeDisc(world, "ReefRing", 212, 2, CFrame.new(0, -2, 0),
+		Color3.fromRGB(112, 97, 90), Enum.Material.Slate)
+	reef.CanCollide = false
+	-- The ash field: a dark basalt inlay zoning the volcano's domain
+	-- (r <= 102 covers the parade ring and the inner mid-ground), so
+	-- the island reads in regions — ash heart, bright shore — the way
+	-- the top 10 zone their floors.
+	local ash = makeDisc(world, "AshField", 102, 0.16, CFrame.new(0, 0, 0),
+		Color3.fromRGB(99, 80, 74), Enum.Material.Slate)
+	ash.CanCollide = false
+	-- Soft colour patches in the outer mid-ground ring: grass and
+	-- coral-sand clearings that break the shore's single tone.
+	for _, patch in ipairs({
+		{ 62, -96, 30, Color3.fromRGB(116, 186, 104) },
+		{ 106, 72, 26, Color3.fromRGB(240, 170, 128) },
+		{ -122, 58, 28, Color3.fromRGB(126, 192, 110) },
+	}) do
+		local p = makeDisc(world, "GroundPatch", patch[3], 0.1, CFrame.new(patch[1], 0.06, patch[2]),
+			patch[4], Enum.Material.SmoothPlastic)
+		p.CanCollide = false
+	end
+	-- Silhouette islets on the horizon (Brainrot Beach's depth
+	-- trick): dark stacked cones far out at sea, so a screenshot's
+	-- background has a third layer behind the island.
+	for _, isle in ipairs({ { 305, 300 }, { -385, 120 }, { 145, -435 } }) do
+		local ix, iz = isle[1], isle[2]
+		local d1 = makeDisc(world, "Islet", 42, 3, CFrame.new(ix, -0.6, iz),
+			Color3.fromRGB(74, 88, 92), Enum.Material.Slate)
+		d1.CanCollide = false
+		local d2 = makeDisc(world, "Islet", 27, 3.4, CFrame.new(ix, 1.8, iz),
+			Color3.fromRGB(82, 96, 98), Enum.Material.Slate)
+		d2.CanCollide = false
+		local d3 = makeDisc(world, "IsletPeak", 13, 4, CFrame.new(ix, 4.6, iz),
+			Color3.fromRGB(90, 104, 102), Enum.Material.Slate)
+		d3.CanCollide = false
+	end
 	-- Sandy beach patches around the south shore.
 	for _, patch in ipairs({
 		{ 0, 168, 34 }, { -70, 140, 26 }, { 75, 138, 28 }, { -130, 95, 22 }, { 132, 92, 24 },
@@ -393,10 +494,19 @@ local function BuildParadeRing()
 		orb.Shape = Enum.PartType.Ball
 		orb.CanCollide = false
 	end
-	-- Start gate: two posts + a banner where fresh brainrots march in.
+	-- Start gate: a fat-pillar GANTRY where fresh brainrots march in
+	-- (Brainrot Beach's runway header, rebuilt at cover scale) with
+	-- three globe lamps crowning the board.
 	local gatePos = Vector3.new(0, 0, Game.Parade.radius)
-	makeSignPost(world, gatePos + Vector3.new(0, 5.2, 6), Vector3.new(0, 5, 190), 13, 3.4,
-		"BRAINROT PARADE", "Buy them before they march off!", Color3.fromRGB(255, 205, 60))
+	makeGantrySign(world, gatePos + Vector3.new(0, 9.6, 6), Vector3.new(0, 8, 190), 19, 4.2,
+		"BRAINROT PARADE", "Buy them before they march off!", Color3.fromRGB(255, 205, 60),
+		Color3.fromRGB(150, 40, 60), false)
+	for _, lx in ipairs({ -7, 0, 7 }) do
+		local globe = makePart(world, "GateGlobe", Vector3.new(1.4, 1.4, 1.4),
+			CFrame.new(lx, 12.6, gatePos.Z + 6), Color3.fromRGB(255, 220, 130), Enum.Material.Neon)
+		globe.Shape = Enum.PartType.Ball
+		globe.CanCollide = false
+	end
 end
 
 local function BuildVolcano()
@@ -459,12 +569,17 @@ local function BuildVolcano()
 	vent.Transparency = 1
 	vent.CanCollide = false
 	smoke.Parent = vent
-	-- Rim rocks, jutting like broken teeth.
+	-- Rim rocks, jutting like broken teeth — heights now vary hard
+	-- (2.5 to 6.4 studs) and one south-side tooth is MISSING, a notch
+	-- where the crater spills toward the south lavafall: the rim's
+	-- silhouette stops being a perfect crown.
 	for i = 1, 12 do
-		local a = (i / 12) * math.pi * 2 + 0.3
-		local pos = Vector3.new(math.cos(a) * 16.5, 68.5, math.sin(a) * 16.5)
-		makePart(volcano, "RimRock", Vector3.new(3.5, 3 + (i % 3), 3),
-			CFrame.new(pos) * CFrame.Angles(0.3, a, 0.2), Color3.fromRGB(112, 94, 88), Enum.Material.Slate)
+		if i ~= 3 then
+			local a = (i / 12) * math.pi * 2 + 0.3
+			local pos = Vector3.new(math.cos(a) * 16.5, 68.5, math.sin(a) * 16.5)
+			makePart(volcano, "RimRock", Vector3.new(3.5, 2.5 + ((i * 7) % 4) * 1.3, 3),
+				CFrame.new(pos) * CFrame.Angles(0.3, a, 0.2), Color3.fromRGB(112, 94, 88), Enum.Material.Slate)
+		end
 	end
 	-- Lavafalls: neon sheets hugging all four slopes (the cone leans
 	-- ~33 degrees; the sheets lean 27 and sit proud of it), so the
@@ -476,6 +591,44 @@ local function BuildVolcano()
 			Color3.fromRGB(255, 120, 40), Enum.Material.Neon)
 		fall.CanCollide = false
 		table.insert(animatedLava, fall)
+	end
+	-- Shoulder cones: two smaller stacked-disc cones leaning on the
+	-- main cone's flanks (SE and SW), so the volcano's outline is a
+	-- mountain RANGE, not one smooth thimble (STUDY-TOP10-DEEP.md,
+	-- finding 5). They intersect the main cone on purpose — the seam
+	-- is the silhouette.
+	for _, sh in ipairs({
+		{ x = 37, z = 24, tiers = { { 18, 0, 13 }, { 12.5, 13, 23 }, { 7.5, 23, 31 } } },
+		{ x = -33, z = 26, tiers = { { 15, 0, 10 }, { 10, 10, 18 }, { 6, 18, 24 } } },
+	}) do
+		for i, lv in ipairs(sh.tiers) do
+			local color = (i % 2 == 0) and Color3.fromRGB(122, 98, 90) or Color3.fromRGB(146, 116, 102)
+			makeDisc(volcano, "ShoulderCone", lv[1], lv[3] - lv[2],
+				CFrame.new(sh.x, (lv[2] + lv[3]) / 2, sh.z), color, Enum.Material.Slate)
+		end
+	end
+	-- Outcrop rocks embedded in the slopes: rotated slabs that break
+	-- the cone's smooth bands at base and mid-height.
+	for i = 1, 10 do
+		local a = (i / 10) * math.pi * 2 + 0.8
+		local pos = Vector3.new(math.cos(a) * 54, 3.5, math.sin(a) * 54)
+		makePart(volcano, "Outcrop", Vector3.new(5 + (i % 3) * 1.6, 4 + (i % 2) * 2, 4),
+			CFrame.new(pos) * CFrame.Angles(0.4, a, 0.3), Color3.fromRGB(104, 86, 80), Enum.Material.Slate)
+	end
+	for i = 1, 6 do
+		local a = (i / 6) * math.pi * 2 + 1.7
+		local pos = Vector3.new(math.cos(a) * 33, 26, math.sin(a) * 33)
+		makePart(volcano, "Outcrop", Vector3.new(3.6, 3, 3),
+			CFrame.new(pos) * CFrame.Angles(0.5, a, 0.4), Color3.fromRGB(110, 90, 84), Enum.Material.Slate)
+	end
+	-- Lava seams: thin Neon rings sitting proud of the cone's step
+	-- ledges, registered in the pulse loop — glowing cracks that
+	-- stitch the silhouette at three heights.
+	for _, seam in ipairs({ { 49.6, 21.6 }, { 39.6, 33.6 }, { 30.6, 45.6 } }) do
+		local ring = makeDisc(volcano, "LavaSeam", seam[1], 0.55, CFrame.new(0, seam[2], 0),
+			Color3.fromRGB(255, 116, 38), Enum.Material.Neon)
+		ring.CanCollide = false
+		table.insert(animatedLava, ring)
 	end
 end
 
@@ -536,6 +689,88 @@ local function BuildZones()
 			gemColors[i], Enum.Material.Glass)
 		gem.CanCollide = false
 	end
+	-- Mesa dressing (STUDY-TOP10-DEEP.md): the Fields plateau stops
+	-- being a bare grey box — banded stone cladding on its south and
+	-- east faces, corner posts with Neon caps, a railed fence along
+	-- its top edges, and a real staircase up the south face.
+	for _, band in ipairs({
+		{ Vector3.new(120.6, 1.3, 0.5), CFrame.new(-115, 5.5, -54.7) },
+		{ Vector3.new(120.6, 1.3, 0.5), CFrame.new(-115, 1.8, -54.7) },
+		{ Vector3.new(0.5, 1.3, 120.6), CFrame.new(-54.7, 5.5, -115) },
+		{ Vector3.new(0.5, 1.3, 120.6), CFrame.new(-54.7, 1.8, -115) },
+	}) do
+		makePart(world, "MesaBand", band[1], band[2], Color3.fromRGB(172, 158, 150), Enum.Material.Slate)
+	end
+	for _, cx in ipairs({ -174, -56 }) do
+		for _, cz in ipairs({ -174, -56 }) do
+			makePart(world, "MesaCorner", Vector3.new(2, 11, 2), CFrame.new(cx, 2.5, cz),
+				Color3.fromRGB(120, 106, 104), Enum.Material.Slate)
+			local cap = makeDisc(world, "MesaCap", 1.5, 0.4, CFrame.new(cx, 8.3, cz),
+				Color3.fromRGB(150, 120, 255), Enum.Material.Neon)
+			cap.CanCollide = false
+		end
+	end
+	-- Top-edge fencing: posts + two rails, with a gap in the south
+	-- run where the staircase arrives.
+	for px = -170, -60, 10 do
+		if px < -124 or px > -106 then
+			makePart(world, "FencePost", Vector3.new(0.35, 2.6, 0.35), CFrame.new(px, 9.3, -56),
+				Color3.fromRGB(110, 80, 54), Enum.Material.Wood)
+		end
+		makePart(world, "FencePost", Vector3.new(0.35, 2.6, 0.35), CFrame.new(-56, 9.3, px),
+			Color3.fromRGB(110, 80, 54), Enum.Material.Wood)
+	end
+	for _, seg in ipairs({ { -147.5, 47 }, { -82.5, 47 } }) do
+		makePart(world, "FenceRail", Vector3.new(seg[2], 0.3, 0.3), CFrame.new(seg[1], 9.2, -56),
+			Color3.fromRGB(128, 92, 62), Enum.Material.Wood)
+		makePart(world, "FenceRail", Vector3.new(seg[2], 0.3, 0.3), CFrame.new(seg[1], 10.2, -56),
+			Color3.fromRGB(128, 92, 62), Enum.Material.Wood)
+	end
+	makePart(world, "FenceRail", Vector3.new(0.3, 0.3, 112), CFrame.new(-56, 9.2, -115),
+		Color3.fromRGB(128, 92, 62), Enum.Material.Wood)
+	makePart(world, "FenceRail", Vector3.new(0.3, 0.3, 112), CFrame.new(-56, 10.2, -115),
+		Color3.fromRGB(128, 92, 62), Enum.Material.Wood)
+	-- The staircase: four stone slabs climbing the south face.
+	for k = 0, 3 do
+		local topY = 6.4 - k * 1.6
+		makePart(world, "MesaStep", Vector3.new(14, topY, 3.2), CFrame.new(-115, topY / 2, -53.4 + k * 3.2),
+			Color3.fromRGB(140, 126, 120), Enum.Material.Slate)
+	end
+	-- A watchtower on the plateau's SE shoulder: four legs, an open
+	-- cabin and a pitched roof in the zone's purple — the Fields'
+	-- landmark silhouette.
+	local tw = CFrame.new(-84, 8, -64)
+	for _, lx in ipairs({ -3, 3 }) do
+		for _, lz in ipairs({ -3, 3 }) do
+			makePart(world, "TowerLeg", Vector3.new(0.7, 13, 0.7), tw * CFrame.new(lx, 6.5, lz),
+				Color3.fromRGB(96, 70, 50), Enum.Material.Wood)
+		end
+	end
+	makePart(world, "TowerFloor", Vector3.new(9.5, 0.6, 9.5), tw * CFrame.new(0, 13.2, 0),
+		Color3.fromRGB(128, 92, 62), Enum.Material.Wood)
+	for _, lx in ipairs({ -4.2, 4.2 }) do
+		for _, lz in ipairs({ -4.2, 4.2 }) do
+			makePart(world, "TowerPost", Vector3.new(0.5, 3.4, 0.5), tw * CFrame.new(lx, 15.2, lz),
+				Color3.fromRGB(96, 70, 50), Enum.Material.Wood)
+		end
+	end
+	makePart(world, "TowerWall", Vector3.new(0.5, 3, 9), tw * CFrame.new(-4.5, 15, 0),
+		Color3.fromRGB(140, 104, 72), Enum.Material.Wood)
+	makePart(world, "TowerWall", Vector3.new(9, 3, 0.5), tw * CFrame.new(0, 15, -4.5),
+		Color3.fromRGB(140, 104, 72), Enum.Material.Wood)
+	local roofL = makePart(world, "TowerRoof", Vector3.new(6.2, 0.3, 10.5), tw * CFrame.new(-2.55, 18.1, 0) * CFrame.Angles(0, 0, 0.49),
+		Color3.fromRGB(70, 60, 66), Enum.Material.Slate)
+	roofL.CanCollide = false
+	local roofR = makePart(world, "TowerRoof", Vector3.new(6.2, 0.3, 10.5), tw * CFrame.new(2.55, 18.1, 0) * CFrame.Angles(0, 0, -0.49),
+		Color3.fromRGB(70, 60, 66), Enum.Material.Slate)
+	roofR.CanCollide = false
+	local ridge = makePart(world, "TowerRidge", Vector3.new(0.4, 0.4, 10.5), tw * CFrame.new(0, 19.6, 0),
+		Color3.fromRGB(150, 120, 255), Enum.Material.Neon)
+	ridge.CanCollide = false
+	local towerOrb = makePart(world, "TowerOrb", Vector3.new(1.2, 1.2, 1.2), tw * CFrame.new(0, 20.7, 0),
+		Color3.fromRGB(150, 120, 255), Enum.Material.Neon)
+	towerOrb.Shape = Enum.PartType.Ball
+	towerOrb.CanCollide = false
 	makeSignPost(world, Vector3.new(-58, 12.5, -66), Vector3.new(0, 10, 60), 13, 3.4,
 		"OBSIDIAN FIELDS", "Unlocked at Rekindle 1 — richer wild spawns", Color3.fromRGB(150, 120, 255))
 	-- Crater Rim: a high shelf on the volcano's north face, Rekindle 3.
@@ -547,6 +782,22 @@ local function BuildZones()
 			CFrame.new(-30 + i * 17, 30.1, -104 + (i % 2) * 18) * CFrame.Angles(0, i * 0.7, 0),
 			Color3.fromRGB(255, 116, 38), Enum.Material.Neon)
 		crack.CanCollide = false
+	end
+	-- Rim dressing: a railed fence along the shelf's south edge and
+	-- two tilted rock spires, so the high shelf reads as a built
+	-- overlook instead of a floating slab.
+	for px = -45, 45, 9 do
+		makePart(world, "FencePost", Vector3.new(0.35, 2.6, 0.35), CFrame.new(px, 31.3, -63),
+			Color3.fromRGB(110, 80, 54), Enum.Material.Wood)
+	end
+	makePart(world, "FenceRail", Vector3.new(92, 0.3, 0.3), CFrame.new(0, 31.9, -63),
+		Color3.fromRGB(128, 92, 62), Enum.Material.Wood)
+	makePart(world, "FenceRail", Vector3.new(92, 0.3, 0.3), CFrame.new(0, 32.4, -63),
+		Color3.fromRGB(128, 92, 62), Enum.Material.Wood)
+	for _, sp in ipairs({ { -40, -70 }, { 42, -118 } }) do
+		makePart(world, "RimSpire", Vector3.new(2.2, 9, 2.2),
+			CFrame.new(sp[1], 33, sp[2]) * CFrame.Angles(0.15, sp[1], 0.1),
+			Color3.fromRGB(104, 88, 84), Enum.Material.Slate)
 	end
 	-- Rough stone steps climbing from the Fields toward the Rim.
 	for i = 0, 5 do
@@ -577,7 +828,14 @@ local function BuildSpawnPlaza()
 	spawn.Parent = world
 
 	makeSignPost(world, Vector3.new(-15, 5, 131), Vector3.new(0, 4, 152), 14, 3.6,
-		"MAGMA MAYHEM", "Buy brainrots. Dodge the lava. Trust no goblin.", Color3.fromRGB(255, 110, 50))
+		"SPAWN PLAZA", "Mind the lava. Pet the brainrots.", Color3.fromRGB(255, 110, 50))
+	-- THE marquee: a bulb-trimmed MAGMA MAYHEM gantry straddling the
+	-- path from the plaza to the parade, the volcano framed behind
+	-- it — the island's title shot (STUDY-TOP10-DEEP.md, finding 3;
+	-- the pass-1 skip, now built).
+	makeGantrySign(world, Vector3.new(0, 12.6, 124), Vector3.new(0, 11, 170), 27, 5.2,
+		"MAGMA MAYHEM", "Buy brainrots. Dodge the lava. Trust no goblin.",
+		Color3.fromRGB(255, 110, 50), Color3.fromRGB(84, 58, 40), true)
 	makeSignPost(world, Vector3.new(-19, 4.6, 158), Vector3.new(0, 4, 148), 12, 3.2,
 		"HOW TO PLAY", "Parade -> carry home -> bank -> collect -> REKINDLE", Color3.fromRGB(120, 220, 255))
 
@@ -688,6 +946,36 @@ local function BuildPlayerBases()
 			orb.CanCollide = false
 		end
 
+		-- Booth dressing (STUDY-TOP10-DEEP.md, finding 2 — the
+		-- single biggest gap): cream walls with a Neon top rail turn
+		-- the open slab into an enclosed yard, and a striped canopy
+		-- on four poles roofs the back half like Big Top's booths.
+		-- All of it hugs the platform edges, clear of the pedestal
+		-- grid and the front steps.
+		makePart(plotFolder, "WallBack", Vector3.new(37, 3.4, 0.7), topCf * CFrame.new(0, 1.7, 14.6),
+			Color3.fromRGB(242, 238, 228), Enum.Material.SmoothPlastic)
+		makePart(plotFolder, "WallBackRail", Vector3.new(37.4, 0.35, 0.95), topCf * CFrame.new(0, 3.55, 14.6),
+			trim, Enum.Material.Neon)
+		for _, sx in ipairs({ -18.6, 18.6 }) do
+			makePart(plotFolder, "WallSide", Vector3.new(0.7, 3.4, 17), topCf * CFrame.new(sx, 1.7, 6),
+				Color3.fromRGB(242, 238, 228), Enum.Material.SmoothPlastic)
+			makePart(plotFolder, "WallSideRail", Vector3.new(0.95, 0.35, 17.4), topCf * CFrame.new(sx, 3.55, 6),
+				trim, Enum.Material.Neon)
+		end
+		for _, px in ipairs({ -16.8, 16.8 }) do
+			makePart(plotFolder, "CanopyPole", Vector3.new(0.4, 9.6, 0.4), topCf * CFrame.new(px, 4.8, 4.5),
+				Color3.fromRGB(96, 70, 50), Enum.Material.Wood)
+			makePart(plotFolder, "CanopyPole", Vector3.new(0.4, 11.2, 0.4), topCf * CFrame.new(px, 5.6, 13.8),
+				Color3.fromRGB(96, 70, 50), Enum.Material.Wood)
+		end
+		for k = 0, 4 do
+			local stripe = (k % 2 == 0) and trim or Color3.fromRGB(255, 250, 240)
+			local awn = makePart(plotFolder, "CanopyPanel", Vector3.new(7, 0.22, 10.6),
+				topCf * CFrame.new(-14 + k * 7, 10.4, 9.15) * CFrame.Angles(math.rad(-10), 0, 0),
+				stripe, Enum.Material.SmoothPlastic)
+			awn.CanCollide = false
+		end
+
 		-- 25 pedestals in a 5x5 grid — enough for the base 6 slots plus
 		-- every Rekindle's +2 (max 22). Only the first pedestalsMax are
 		-- unlocked; the rest stand dark until Rekindles add slots.
@@ -698,6 +986,12 @@ local function BuildPlayerBases()
 				n += 1
 				local lx = -14.4 + (col - 1) * 7.2
 				local lz = -10 + (row - 1) * 5
+				-- A Neon flange ring under each pedestal (Ice
+				-- Fish's glow-ring read): the grid stops being
+				-- dots on a slab and becomes lit display spots.
+				local flange = makeDisc(plotFolder, "PedestalRing" .. n, 2.35, 0.22,
+					topCf * CFrame.new(lx, 0.11, lz), trim, Enum.Material.Neon)
+				flange.CanCollide = false
 				local ped = makeDisc(plotFolder, "Pedestal" .. n, 1.7, 1.1,
 					topCf * CFrame.new(lx, 0.55, lz), Color3.fromRGB(104, 96, 112), Enum.Material.Slate)
 				table.insert(pedestalParts, ped)
@@ -720,9 +1014,13 @@ local function BuildPlayerBases()
 		dome.CanCollide = false
 		dome.Transparency = 1
 
-		local signPos = topCf * Vector3.new(0, 4.6, -16.5)
-		local signTitle, signSub = makeSignPost(world, signPos,
-			signPos + (topCf.LookVector * 30), 13, 3.2, "VACANT PLOT", "A brainrot base, awaiting a legend")
+		-- The plot's name rides an entrance GANTRY over the steps
+		-- (the base billboards of #5/#8), not a ground totem — same
+		-- dynamic labels, rewritten by OnPlayerAdded as before.
+		local signPos = topCf * Vector3.new(0, 7.2, -18)
+		local signTitle, signSub = makeGantrySign(world, signPos,
+			signPos + (topCf.LookVector * 30), 17, 4, "VACANT PLOT", "A brainrot base, awaiting a legend",
+			trim, Color3.fromRGB(84, 58, 40), false)
 
 		-- Two stone steps climb the platform's front face, so owners,
 		-- visitors and thieves can all get up from the beach.
@@ -769,6 +1067,26 @@ local function BuildRivalBases()
 			Color3.fromRGB(255, 80, 70), Enum.Material.Neon)
 		makePart(folder, "TrimRight", Vector3.new(0.6, 0.5, 19.6), topCf * CFrame.new(12, 0.1, 0),
 			Color3.fromRGB(255, 80, 70), Enum.Material.Neon)
+		-- Booth dressing, matching the player plots: a back wall and
+		-- a red/white striped awning, so a rival stash reads as a
+		-- rival SHOP, not a bare tray.
+		makePart(folder, "WallBack", Vector3.new(23, 3.2, 0.7), topCf * CFrame.new(0, 1.6, 9.1),
+			Color3.fromRGB(122, 64, 56), Enum.Material.SmoothPlastic)
+		makePart(folder, "WallBackRail", Vector3.new(23.4, 0.35, 0.95), topCf * CFrame.new(0, 3.35, 9.1),
+			Color3.fromRGB(255, 80, 70), Enum.Material.Neon)
+		for _, px in ipairs({ -10.5, 10.5 }) do
+			makePart(folder, "CanopyPole", Vector3.new(0.4, 8.2, 0.4), topCf * CFrame.new(px, 4.1, 2.5),
+				Color3.fromRGB(84, 58, 44), Enum.Material.Wood)
+			makePart(folder, "CanopyPole", Vector3.new(0.4, 9.6, 0.4), topCf * CFrame.new(px, 4.8, 8.8),
+				Color3.fromRGB(84, 58, 44), Enum.Material.Wood)
+		end
+		for k = 0, 2 do
+			local stripe = (k % 2 == 0) and Color3.fromRGB(255, 84, 74) or Color3.fromRGB(255, 250, 240)
+			local awn = makePart(folder, "CanopyPanel", Vector3.new(8, 0.22, 7.6),
+				topCf * CFrame.new(-8 + k * 8, 9.3, 5.65) * CFrame.Angles(math.rad(-10), 0, 0),
+				stripe, Enum.Material.SmoothPlastic)
+			awn.CanCollide = false
+		end
 		local pedestalCFrames, pedestalParts = {}, {}
 		for k = 1, 4 do
 			local lx = -6.75 + (k - 1) * 4.5
@@ -913,6 +1231,75 @@ local function BuildDressing()
 				Color3.fromRGB(255, 190, 90), Enum.Material.Neon)
 			orb.Shape = Enum.PartType.Ball
 			orb.CanCollide = false
+		end
+	end
+	-- The dock: a wooden pier reaching into the southern sea with a
+	-- roofed hut at its end — shoreline architecture and a foreground
+	-- for every south-facing view (Brainrot Beach's deck lesson).
+	local dock = Instance.new("Folder")
+	dock.Name = "Dock"
+	dock.Parent = world
+	for k = 0, 4 do
+		makePart(dock, "DockPlank", Vector3.new(7.5, 0.5, 9.4), CFrame.new(58, 1.1, 194 + k * 9),
+			Color3.fromRGB(140, 104, 72), Enum.Material.Wood)
+	end
+	for _, pz in ipairs({ 191, 200, 209, 218, 227, 234 }) do
+		for _, px in ipairs({ 54.8, 61.2 }) do
+			makePart(dock, "DockPost", Vector3.new(0.6, 4.4, 0.6), CFrame.new(px, -0.6, pz),
+				Color3.fromRGB(110, 80, 54), Enum.Material.Wood)
+		end
+	end
+	for _, px in ipairs({ 54.5, 61.5 }) do
+		makePart(dock, "DockRail", Vector3.new(0.3, 0.3, 45), CFrame.new(px, 2.6, 212),
+			Color3.fromRGB(122, 88, 60), Enum.Material.Wood)
+		for pz = 194, 230, 9 do
+			makePart(dock, "DockRailPost", Vector3.new(0.3, 1.6, 0.3), CFrame.new(px, 1.9, pz),
+				Color3.fromRGB(122, 88, 60), Enum.Material.Wood)
+		end
+	end
+	for _, px in ipairs({ 55, 61 }) do
+		for _, pz in ipairs({ 225, 232 }) do
+			makePart(dock, "HutPost", Vector3.new(0.4, 5.5, 0.4), CFrame.new(px, 4.1, pz),
+				Color3.fromRGB(96, 70, 50), Enum.Material.Wood)
+		end
+	end
+	local hutRoofA = makePart(dock, "HutRoof", Vector3.new(8.6, 0.25, 5.6),
+		CFrame.new(58, 7.6, 225.8) * CFrame.Angles(math.rad(-28), 0, 0), Color3.fromRGB(255, 92, 84), Enum.Material.SmoothPlastic)
+	hutRoofA.CanCollide = false
+	local hutRoofB = makePart(dock, "HutRoof", Vector3.new(8.6, 0.25, 5.6),
+		CFrame.new(58, 7.6, 231.2) * CFrame.Angles(math.rad(28), 0, 0), Color3.fromRGB(255, 250, 240), Enum.Material.SmoothPlastic)
+	hutRoofB.CanCollide = false
+	local hutLamp = makePart(dock, "HutLamp", Vector3.new(1.1, 1.1, 1.1), CFrame.new(58, 6.2, 228.5),
+		Color3.fromRGB(255, 190, 90), Enum.Material.Neon)
+	hutLamp.Shape = Enum.PartType.Ball
+	hutLamp.CanCollide = false
+	makePart(dock, "HutCrate", Vector3.new(1.8, 1.8, 1.8), CFrame.new(56, 2.25, 229),
+		Color3.fromRGB(32, 178, 190), Enum.Material.Wood)
+	-- Tiki statues in the mid-ground: Chief Magma's stone cousins,
+	-- medium silhouettes that give the ring between parade and shore
+	-- a population of landmarks.
+	for _, tp in ipairs({ { 74, 74 }, { -100, 40 }, { 100, -30 }, { -30, 105 } }) do
+		local cf = CFrame.lookAt(Vector3.new(tp[1], 0, tp[2]), Vector3.new(0, 0, 0))
+		local tiki = Instance.new("Model")
+		tiki.Name = "Tiki"
+		tiki.Parent = world
+		makePart(tiki, "Base", Vector3.new(2.6, 1.2, 2.6), cf * CFrame.new(0, 0.6, 0),
+			Color3.fromRGB(96, 84, 80), Enum.Material.Slate)
+		makePart(tiki, "Body", Vector3.new(2.2, 2.8, 2.2), cf * CFrame.new(0, 2.6, 0),
+			Color3.fromRGB(104, 90, 86), Enum.Material.Slate)
+		makePart(tiki, "Head", Vector3.new(2.5, 2.6, 2.5), cf * CFrame.new(0, 5.3, 0),
+			Color3.fromRGB(96, 84, 80), Enum.Material.Slate)
+		for _, ex in ipairs({ -0.5, 0.5 }) do
+			local eye = makePart(tiki, "Eye", Vector3.new(0.4, 0.4, 0.18), cf * CFrame.new(ex, 5.6, -1.28),
+				Color3.fromRGB(255, 170, 50), Enum.Material.Neon)
+			eye.CanCollide = false
+		end
+		makePart(tiki, "Nose", Vector3.new(0.5, 1.1, 0.5), cf * CFrame.new(0, 4.9, -1.35),
+			Color3.fromRGB(88, 76, 74), Enum.Material.Slate)
+		for s = -1, 1 do
+			local spike = makePart(tiki, "CrownSpike", Vector3.new(0.35, 1, 0.35), cf * CFrame.new(s * 0.7, 7.1, 0),
+				Color3.fromRGB(255, 140, 40), Enum.Material.Neon)
+			spike.CanCollide = false
 		end
 	end
 end
