@@ -286,12 +286,24 @@ local Remotes = {
 	ToggleLock = makeRemote("RemoteEvent", "ToggleLock"),
 	ClaimQuest = makeRemote("RemoteEvent", "ClaimQuest"),
 	RerollMutation = makeRemote("RemoteEvent", "RerollMutation"), -- (pedestalIndex)
+	SetSprint = makeRemote("RemoteEvent", "SetSprint"), -- (bool) hold-Shift sprint flag
 	-- server -> client
 	HudUpdate = makeRemote("RemoteEvent", "HudUpdate"), -- (stateTable)
 	Toast = makeRemote("RemoteEvent", "Toast"), -- (title, body, kind)
 	-- client -> server -> client
 	GetIndexState = makeRemote("RemoteFunction", "GetIndexState"),
 }
+
+-- The music shelf: an empty folder the client scans for Sound
+-- tracks and plays in rotation (Akmal drops free Studio Toolbox
+-- tracks in here himself). Created ONLY if missing and never
+-- destroyed on re-run — unlike MagmaRemotes above, wiping this
+-- folder would take his inserted tracks with it.
+if not ReplicatedStorage:FindFirstChild("MusicTracks") then
+	local musicFolder = Instance.new("Folder")
+	musicFolder.Name = "MusicTracks"
+	musicFolder.Parent = ReplicatedStorage
+end
 
 --====================================================================--
 -- The Game context: one table every server module shares. World data
@@ -368,6 +380,7 @@ local function NewPlayerState(player, plot)
 		lockState = "open", -- "open" | "locked" | "cooldown"
 		lockEndsAt = 0,
 		carried = nil, -- { defName, mutationName, model, source }
+		sprinting = false, -- hold-Shift sprint flag (SetSprint remote)
 		discovered = {}, -- [brainrotName] = true
 		ownedCounts = {}, -- [brainrotName] = count (placed + carried)
 		indexMilestonesClaimed = {},
@@ -693,9 +706,13 @@ local function BuildZones()
 	-- being a bare grey box — banded stone cladding on its south and
 	-- east faces, corner posts with Neon caps, a railed fence along
 	-- its top edges, and a real staircase up the south face.
+	-- The two south bands are split around the stair corridor
+	-- (x -124..-106) so nothing at all crosses the climb path.
 	for _, band in ipairs({
-		{ Vector3.new(120.6, 1.3, 0.5), CFrame.new(-115, 5.5, -54.7) },
-		{ Vector3.new(120.6, 1.3, 0.5), CFrame.new(-115, 1.8, -54.7) },
+		{ Vector3.new(51, 1.3, 0.5), CFrame.new(-149.5, 5.5, -54.7) },
+		{ Vector3.new(51, 1.3, 0.5), CFrame.new(-80.5, 5.5, -54.7) },
+		{ Vector3.new(51, 1.3, 0.5), CFrame.new(-149.5, 1.8, -54.7) },
+		{ Vector3.new(51, 1.3, 0.5), CFrame.new(-80.5, 1.8, -54.7) },
 		{ Vector3.new(0.5, 1.3, 120.6), CFrame.new(-54.7, 5.5, -115) },
 		{ Vector3.new(0.5, 1.3, 120.6), CFrame.new(-54.7, 1.8, -115) },
 	}) do
@@ -730,12 +747,65 @@ local function BuildZones()
 		Color3.fromRGB(128, 92, 62), Enum.Material.Wood)
 	makePart(world, "FenceRail", Vector3.new(0.3, 0.3, 112), CFrame.new(-56, 10.2, -115),
 		Color3.fromRGB(128, 92, 62), Enum.Material.Wood)
-	-- The staircase: four stone slabs climbing the south face.
-	for k = 0, 3 do
-		local topY = 6.4 - k * 1.6
-		makePart(world, "MesaStep", Vector3.new(14, topY, 3.2), CFrame.new(-115, topY / 2, -53.4 + k * 3.2),
-			Color3.fromRGB(140, 126, 120), Enum.Material.Slate)
+	-- The staircase, rebuilt to be UNMISSABLE (playtest fix: the old
+	-- four slabs were the same dark slate as the cliff and topped
+	-- out 1.6 studs BELOW the plateau, so the climb read as a sheer
+	-- wall and dead-ended in a jump against the face). Now: warm
+	-- sandstone treads that protrude ~2.9 studs each, dark nosing
+	-- strips, side stringers, handrails, orb lamps at base and
+	-- arrival, a big sign at the base, and a landing slab whose top
+	-- is FLUSH with the plateau (y 8.0) — the last move is a walk.
+	local stairStone = Color3.fromRGB(233, 199, 148)
+	local stairWood = Color3.fromRGB(110, 78, 50)
+	local stepTops = { 6.6, 5.2, 3.8, 2.4, 1.0 }
+	local stepFronts = { -48.8, -45.9, -43.0, -40.1, -37.2 }
+	for i, topY in ipairs(stepTops) do
+		local front = stepFronts[i]
+		makePart(world, "MesaStep", Vector3.new(14, topY, 5), CFrame.new(-115, topY / 2, front - 2.5),
+			stairStone, Enum.Material.Sandstone)
+		local nosing = makePart(world, "MesaNosing", Vector3.new(14.2, 0.28, 0.5),
+			CFrame.new(-115, topY - 0.14, front + 0.1), stairWood, Enum.Material.Wood)
+		nosing.CanCollide = false
 	end
+	-- Landing: top flush with the plateau top, bridging from the
+	-- highest tread over the face to the fence gap (x -124..-106
+	-- stays completely clear: fence posts/rails already gap there,
+	-- and the south MesaBands are split around this corridor).
+	makePart(world, "MesaLanding", Vector3.new(14, 1.2, 4.6), CFrame.new(-115, 7.4, -53.3),
+		stairStone, Enum.Material.Sandstone)
+	-- Side stringer beams following the slope.
+	for _, sx in ipairs({ -122.3, -107.7 }) do
+		local mid = Vector3.new(sx, 3.95, -44.6)
+		local beam = makePart(world, "MesaStringer", Vector3.new(0.55, 0.9, 17.5),
+			CFrame.lookAt(mid, Vector3.new(sx, 7.5, -52.6)), stairWood, Enum.Material.Wood)
+		beam.CanCollide = false
+	end
+	-- Handrails: posts standing on the treads near both edges, one
+	-- angled rail per side at waist height.
+	for _, hx in ipairs({ -121.5, -108.5 }) do
+		for _, post in ipairs({ { -39.5, 1.0 }, { -45.5, 3.8 }, { -51.0, 6.6 } }) do
+			makePart(world, "MesaRailPost", Vector3.new(0.35, 2.6, 0.35),
+				CFrame.new(hx, post[2] + 1.3, post[1]), stairWood, Enum.Material.Wood)
+		end
+		local railMid = Vector3.new(hx, 6.55, -45.25)
+		local rail = makePart(world, "MesaRail", Vector3.new(0.28, 0.28, 14.1),
+			CFrame.lookAt(railMid, Vector3.new(hx, 9.35, -51.7)), stairWood, Enum.Material.Wood)
+		rail.CanCollide = false
+	end
+	-- Orb lamps: one at the stair base, one at the arrival on the
+	-- plateau top (just west of the fence gap, outside the corridor).
+	for _, lamp in ipairs({ { -125.5, 0, -37 }, { -125.5, 8, -57 } }) do
+		makePart(world, "MesaLampPost", Vector3.new(0.4, 5.2, 0.4),
+			CFrame.new(lamp[1], lamp[2] + 2.6, lamp[3]), Color3.fromRGB(70, 54, 48), Enum.Material.Slate)
+		local orb = makePart(world, "MesaLampOrb", Vector3.new(1.15, 1.15, 1.15),
+			CFrame.new(lamp[1], lamp[2] + 5.6, lamp[3]), Color3.fromRGB(255, 196, 96), Enum.Material.Neon)
+		orb.Shape = Enum.PartType.Ball
+		orb.CanCollide = false
+	end
+	-- The wayfinding sign at the base, big enough to read from the
+	-- plaza side of the mesa.
+	makeSignPost(world, Vector3.new(-115, 6.6, -34.5), Vector3.new(-115, 5, 90), 17, 4.4,
+		"OBSIDIAN FIELDS", "Stairs up - Rekindle 1 zone", Color3.fromRGB(170, 130, 255))
 	-- A watchtower on the plateau's SE shoulder: four legs, an open
 	-- cabin and a pitched roof in the zone's purple — the Fields'
 	-- landmark silhouette.
@@ -1278,7 +1348,7 @@ local function BuildDressing()
 	-- Tiki statues in the mid-ground: Chief Magma's stone cousins,
 	-- medium silhouettes that give the ring between parade and shore
 	-- a population of landmarks.
-	for _, tp in ipairs({ { 74, 74 }, { -100, 40 }, { 100, -30 }, { -30, 105 } }) do
+	for _, tp in ipairs({ { 74, 74 }, { -100, 40 }, { 100, -30 }, { -30, 105 }, { 140, -80 }, { -170, 30 } }) do
 		local cf = CFrame.lookAt(Vector3.new(tp[1], 0, tp[2]), Vector3.new(0, 0, 0))
 		local tiki = Instance.new("Model")
 		tiki.Name = "Tiki"
@@ -1304,6 +1374,544 @@ local function BuildDressing()
 	end
 end
 
+--====================================================================--
+-- DENSITY + LIFE PASS (final visual pass before submission)
+--
+-- Everything below is decoration: Anchored, CanCollide = false,
+-- parented under the same world folder, and placed so it never
+-- touches a gameplay position (pedestals, pads, spawn, plots,
+-- parade path and pool spots all stay exactly where they were).
+-- The only collidable additions are the two access staircases
+-- (mesa landing in BuildZones above, Crater Rim flight below) —
+-- those are functional, not decoration.
+--
+-- decoMovers registers the few parts the ambient loop animates
+-- (boats, the lighthouse beam). The loop re-finds them BY NAME
+-- under the world folder on every pass, so a world heal/rebuild
+-- can never break it, and it never reads or writes Game state.
+--====================================================================--
+
+local decoMovers = {}
+
+local function nc(part)
+	part.CanCollide = false
+	return part
+end
+
+-- Orb lamp in the island's existing style: dark post, warm Neon
+-- orb. Used for the new paths, ring road and staircases.
+local function makeOrbLamp(parent, x, baseY, z)
+	nc(makePart(parent, "LampPost", Vector3.new(0.4, 5.2, 0.4), CFrame.new(x, baseY + 2.6, z),
+		Color3.fromRGB(70, 54, 48), Enum.Material.Slate))
+	local orb = nc(makePart(parent, "LampOrb", Vector3.new(1.15, 1.15, 1.15),
+		CFrame.new(x, baseY + 5.6, z), Color3.fromRGB(255, 196, 96), Enum.Material.Neon))
+	orb.Shape = Enum.PartType.Ball
+end
+
+-- A chunky blocky islander: legs, torso, arms, head, cap or hair.
+-- Poses: "stand", "vendor" (both arms forward onto a counter),
+-- "wave" (one arm up). Name-free on purpose — they are inhabitants,
+-- not NPCs with jobs to hand out.
+local function makeFigure(parent, cf, shirt, pants, skin, pose, hatColor)
+	local fig = Instance.new("Model")
+	fig.Name = "Figure"
+	fig.Parent = parent
+	nc(makePart(fig, "LegL", Vector3.new(0.58, 1.5, 0.62), cf * CFrame.new(-0.42, 0.75, 0), pants, Enum.Material.SmoothPlastic))
+	nc(makePart(fig, "LegR", Vector3.new(0.58, 1.5, 0.62), cf * CFrame.new(0.42, 0.75, 0), pants, Enum.Material.SmoothPlastic))
+	nc(makePart(fig, "Torso", Vector3.new(1.7, 1.9, 0.85), cf * CFrame.new(0, 2.45, 0), shirt, Enum.Material.SmoothPlastic))
+	if pose == "vendor" then
+		nc(makePart(fig, "ArmL", Vector3.new(0.5, 1.8, 0.55),
+			cf * CFrame.new(-1.12, 2.45, -0.15) * CFrame.Angles(math.rad(52), 0, 0), shirt, Enum.Material.SmoothPlastic))
+		nc(makePart(fig, "ArmR", Vector3.new(0.5, 1.8, 0.55),
+			cf * CFrame.new(1.12, 2.45, -0.15) * CFrame.Angles(math.rad(52), 0, 0), shirt, Enum.Material.SmoothPlastic))
+	elseif pose == "wave" then
+		nc(makePart(fig, "ArmL", Vector3.new(0.5, 1.8, 0.55), cf * CFrame.new(-1.12, 2.45, 0), shirt, Enum.Material.SmoothPlastic))
+		nc(makePart(fig, "ArmR", Vector3.new(0.5, 1.8, 0.55),
+			cf * CFrame.new(1.5, 3.8, 0) * CFrame.Angles(0, 0, math.rad(30)), shirt, Enum.Material.SmoothPlastic))
+	else
+		nc(makePart(fig, "ArmL", Vector3.new(0.5, 1.8, 0.55), cf * CFrame.new(-1.12, 2.45, 0), shirt, Enum.Material.SmoothPlastic))
+		nc(makePart(fig, "ArmR", Vector3.new(0.5, 1.8, 0.55), cf * CFrame.new(1.12, 2.45, 0), shirt, Enum.Material.SmoothPlastic))
+	end
+	nc(makePart(fig, "Head", Vector3.new(1.05, 1.0, 1.0), cf * CFrame.new(0, 4.02, 0), skin, Enum.Material.SmoothPlastic))
+	if hatColor then
+		nc(makePart(fig, "Cap", Vector3.new(1.14, 0.22, 1.14), cf * CFrame.new(0, 4.62, 0), hatColor, Enum.Material.SmoothPlastic))
+		nc(makePart(fig, "CapBrim", Vector3.new(1.14, 0.1, 0.55), cf * CFrame.new(0, 4.48, -0.78), hatColor, Enum.Material.SmoothPlastic))
+	else
+		nc(makePart(fig, "Hair", Vector3.new(1.12, 0.28, 1.12), cf * CFrame.new(0, 4.6, 0),
+			Color3.fromRGB(70, 48, 32), Enum.Material.SmoothPlastic))
+	end
+	return fig
+end
+
+-- A curved-trunk palm: two trunk segments leaning toward (dx, dz),
+-- five fronds and two coconuts at the crown.
+local function makePalm(parent, x, baseY, z, h, dx, dz)
+	local palm = Instance.new("Model")
+	palm.Name = "Palm"
+	palm.Parent = parent
+	local a = Vector3.new(x, baseY - 0.3, z)
+	local b = Vector3.new(x + dx * 0.7, baseY + h * 0.52, z + dz * 0.7)
+	local c = Vector3.new(x + dx * 1.9, baseY + h, z + dz * 1.9)
+	for _, seg in ipairs({ { a, b }, { b, c } }) do
+		local mid = (seg[1] + seg[2]) / 2
+		local len = (seg[2] - seg[1]).Magnitude + 0.5
+		nc(makePart(palm, "Trunk", Vector3.new(0.62, 0.62, len), CFrame.lookAt(mid, seg[2]),
+			Color3.fromRGB(146, 108, 74), Enum.Material.Wood))
+	end
+	for k = 0, 4 do
+		local yaw = k * (math.pi * 2 / 5) + x
+		local center = c + Vector3.new(math.sin(yaw) * 1.35, -0.35, math.cos(yaw) * 1.35)
+		nc(makePart(palm, "Frond", Vector3.new(0.35, 0.18, 3.4),
+			CFrame.new(center) * CFrame.Angles(0, yaw, 0) * CFrame.Angles(math.rad(30), 0, 0),
+			Color3.fromRGB(74, 168, 84), Enum.Material.SmoothPlastic))
+	end
+	for _, off in ipairs({ { -0.4, -0.35, 0.2 }, { 0.45, -0.3, -0.25 } }) do
+		local nut = nc(makePart(palm, "Coconut", Vector3.new(0.42, 0.42, 0.42),
+			CFrame.new(c + Vector3.new(off[1], off[2], off[3])), Color3.fromRGB(110, 80, 50), Enum.Material.SmoothPlastic))
+		nut.Shape = Enum.PartType.Ball
+	end
+	return palm
+end
+
+-- Pennant flags strung between two points, sagging in the middle,
+-- colors cycling through the palette. The lived-in look.
+local pennantPalette = {
+	Color3.fromRGB(255, 90, 80), Color3.fromRGB(255, 180, 60), Color3.fromRGB(120, 220, 120),
+	Color3.fromRGB(90, 170, 255), Color3.fromRGB(200, 130, 255), Color3.fromRGB(255, 240, 150),
+}
+local function makePennants(parent, a, b)
+	local mid = (a + b) / 2
+	local line = nc(makePart(parent, "PennantLine", Vector3.new(0.06, 0.06, (b - a).Magnitude),
+		CFrame.lookAt(mid, b), Color3.fromRGB(60, 44, 36), Enum.Material.Wood))
+	line.Name = "PennantLine"
+	for i = 1, 9 do
+		local t = i / 10
+		local pos = a:Lerp(b, t) - Vector3.new(0, math.sin(math.pi * t) * 1.1 + 0.55, 0)
+		local yaw = math.atan2(b.X - a.X, b.Z - a.Z)
+		nc(makePart(parent, "Pennant", Vector3.new(0.95, 1.05, 0.08),
+			CFrame.new(pos) * CFrame.Angles(0, yaw, math.rad((i % 2 == 0) and 6 or -6)),
+			pennantPalette[(i % #pennantPalette) + 1], Enum.Material.SmoothPlastic))
+	end
+end
+
+-- MARKET ROW: seven chunky stalls on the south-east apron between
+-- the parade ring and the booths, each with its own vendor, striped
+-- canopy, counter goods and hanging sign — plus the MAGMA MARKET
+-- gantry over the entrance path.
+local function BuildMarketRow()
+	local stalls = {
+		{ 5, "FRUIT", Color3.fromRGB(255, 110, 80) },
+		{ 15, "GEMS", Color3.fromRGB(110, 220, 255) },
+		{ 25, "POTIONS", Color3.fromRGB(190, 120, 255) },
+		{ 35, "SNACKS", Color3.fromRGB(255, 190, 70) },
+		{ 45, "SHELLS", Color3.fromRGB(120, 230, 200) },
+		{ 55, "SPICES", Color3.fromRGB(255, 140, 60) },
+		{ 65, "TOYS", Color3.fromRGB(250, 130, 190) },
+	}
+	local shirts = {
+		Color3.fromRGB(240, 90, 80), Color3.fromRGB(80, 160, 240), Color3.fromRGB(120, 210, 110),
+		Color3.fromRGB(250, 190, 60), Color3.fromRGB(180, 110, 230), Color3.fromRGB(90, 210, 200),
+		Color3.fromRGB(245, 130, 170),
+	}
+	local skins = { Color3.fromRGB(255, 205, 160), Color3.fromRGB(198, 150, 110), Color3.fromRGB(140, 100, 70) }
+	local goodsColors = { Color3.fromRGB(255, 90, 90), Color3.fromRGB(120, 255, 140), Color3.fromRGB(255, 210, 80) }
+	for i, s in ipairs(stalls) do
+		local ang = math.rad(s[1])
+		local x, z = 112 * math.cos(ang), 112 * math.sin(ang)
+		local stall = Instance.new("Folder")
+		stall.Name = "MarketStall" .. i
+		stall.Parent = world
+		local cf = CFrame.lookAt(Vector3.new(x, 0, z), Vector3.new(0, 0, 0))
+		local wood = Color3.fromRGB(128, 92, 62)
+		for _, px in ipairs({ -3.2, 3.2 }) do
+			for _, pz in ipairs({ -2.2, 2.2 }) do
+				nc(makePart(stall, "StallPost", Vector3.new(0.45, 4.4, 0.45), cf * CFrame.new(px, 2.2, pz),
+					wood, Enum.Material.Wood))
+			end
+		end
+		for j = 0, 4 do
+			local col = (j % 2 == 0) and s[3] or Color3.fromRGB(245, 240, 230)
+			nc(makePart(stall, "StallCanopy", Vector3.new(2.0, 0.22, 5.8),
+				cf * CFrame.new(-3.8 + j * 1.9, 4.85, 0) * CFrame.Angles(math.rad(9), 0, 0),
+				col, Enum.Material.SmoothPlastic))
+		end
+		nc(makePart(stall, "StallBack", Vector3.new(9.2, 3.4, 0.3), cf * CFrame.new(0, 1.7, 2.75),
+			s[3]:Lerp(Color3.fromRGB(0, 0, 0), 0.35), Enum.Material.SmoothPlastic))
+		nc(makePart(stall, "StallCounter", Vector3.new(8.2, 1.5, 1.6), cf * CFrame.new(0, 0.95, -1.6),
+			Color3.fromRGB(170, 128, 88), Enum.Material.Wood))
+		nc(makePart(stall, "CounterTop", Vector3.new(8.6, 0.25, 2.0), cf * CFrame.new(0, 1.82, -1.6),
+			Color3.fromRGB(196, 158, 112), Enum.Material.Wood))
+		for g, gx in ipairs({ -2.4, 0, 2.4 }) do
+			local good = nc(makePart(stall, "Goods", Vector3.new(0.72, 0.72, 0.72),
+				cf * CFrame.new(gx, 2.3, -1.6), goodsColors[g], Enum.Material.SmoothPlastic))
+			if g == 2 then
+				good.Shape = Enum.PartType.Ball
+			end
+		end
+		for _, cx in ipairs({ -3.4, 3.4 }) do
+			nc(makePart(stall, "StallCrate", Vector3.new(1.3, 1.3, 1.3), cf * CFrame.new(cx, 0.65, 1.7),
+				Color3.fromRGB(160, 118, 78), Enum.Material.Wood))
+		end
+		nc(makeDisc(stall, "StallBarrel", 0.75, 1.5, cf * CFrame.new(-4.7, 0.75, 0.6),
+			Color3.fromRGB(120, 84, 56), Enum.Material.Wood))
+		local board = nc(makePart(stall, "StallSign", Vector3.new(5.5, 1.5, 0.25), cf * CFrame.new(0, 3.55, -2.7),
+			Color3.fromRGB(52, 38, 34), Enum.Material.Wood))
+		attachSign(board, s[2], nil, s[3])
+		-- The vendor, behind the counter, arms forward on it.
+		makeFigure(stall, cf * CFrame.new(0, 0, 1.3), shirts[i], Color3.fromRGB(80, 70, 90),
+			skins[(i % 3) + 1], "vendor", s[3])
+		-- Two stalls get a customer browsing out front.
+		if i == 2 or i == 5 then
+			makeFigure(stall, cf * CFrame.new(1.6, 0, -4.8) * CFrame.Angles(0, math.rad(180), 0),
+				shirts[(i % 7) + 1], Color3.fromRGB(60, 90, 130), skins[((i + 1) % 3) + 1], "stand", nil)
+		end
+	end
+	makeGantrySign(world, Vector3.new(81.9, 9.6, 57.4), Vector3.new(0, 8, 0), 19, 4.2,
+		"MAGMA MARKET", "Seven stalls of snacks and shiny things", Color3.fromRGB(255, 150, 60),
+		Color3.fromRGB(96, 70, 50), true)
+end
+
+-- PLAZA CENTREPIECE: a tiered lava fountain on the plaza-to-parade
+-- walkway (0, 104) — clear of the spawn pad (0, 150), the marquee
+-- (0, 124) and the parade ring (outer edge r 80). Its lava discs
+-- and streams join the existing animatedLava pulse.
+local function BuildFountain()
+	local f = Instance.new("Folder")
+	f.Name = "Fountain"
+	f.Parent = world
+	local stone = Color3.fromRGB(150, 138, 132)
+	local stoneDark = Color3.fromRGB(110, 100, 98)
+	nc(makeDisc(f, "FountainBase", 7, 1.0, CFrame.new(0, 0.5, 104), stone, Enum.Material.Slate))
+	nc(makeDisc(f, "FountainRim", 7.4, 0.5, CFrame.new(0, 0.95, 104), stoneDark, Enum.Material.Slate))
+	nc(makeDisc(f, "FountainMid", 4.6, 0.9, CFrame.new(0, 1.75, 104), stone, Enum.Material.Slate))
+	nc(makeDisc(f, "FountainTop", 2.6, 0.8, CFrame.new(0, 2.9, 104), stone, Enum.Material.Slate))
+	nc(makeDisc(f, "FountainPillar", 0.85, 3.4, CFrame.new(0, 1.7, 104), stoneDark, Enum.Material.Slate))
+	for _, lava in ipairs({
+		{ "FountainLavaBase", 6.4, 1.06 }, { "FountainLavaMid", 4.0, 2.26 }, { "FountainLavaTop", 2.0, 3.36 },
+	}) do
+		local d = nc(makeDisc(f, lava[1], lava[2], 0.18, CFrame.new(0, lava[3], 104),
+			Color3.fromRGB(255, 110, 40), Enum.Material.Neon))
+		table.insert(animatedLava, d)
+	end
+	local finial = nc(makePart(f, "FountainFinial", Vector3.new(0.85, 0.85, 0.85), CFrame.new(0, 4.15, 104),
+		Color3.fromRGB(255, 110, 40), Enum.Material.Neon))
+	finial.Shape = Enum.PartType.Ball
+	table.insert(animatedLava, finial)
+	-- Falling lava streams: tapered Neon sheets from tier to tier.
+	for k = 0, 3 do
+		local a1 = math.rad(45 + k * 90)
+		local top1 = Vector3.new(1.9 * math.sin(a1), 3.3, 104 + 1.9 * math.cos(a1))
+		local bot1 = Vector3.new(3.9 * math.sin(a1), 2.3, 104 + 3.9 * math.cos(a1))
+		local s1 = nc(makePart(f, "LavaStream", Vector3.new(0.45, 0.16, (bot1 - top1).Magnitude),
+			CFrame.lookAt((top1 + bot1) / 2, bot1), Color3.fromRGB(255, 110, 40), Enum.Material.Neon))
+		table.insert(animatedLava, s1)
+		local a2 = math.rad(22 + k * 90)
+		local top2 = Vector3.new(3.9 * math.sin(a2), 2.25, 104 + 3.9 * math.cos(a2))
+		local bot2 = Vector3.new(6.2 * math.sin(a2), 1.1, 104 + 6.2 * math.cos(a2))
+		local s2 = nc(makePart(f, "LavaStream", Vector3.new(0.55, 0.16, (bot2 - top2).Magnitude),
+			CFrame.lookAt((top2 + bot2) / 2, bot2), Color3.fromRGB(255, 110, 40), Enum.Material.Neon))
+		table.insert(animatedLava, s2)
+	end
+	local crystalColors = {
+		Color3.fromRGB(120, 230, 255), Color3.fromRGB(255, 130, 220), Color3.fromRGB(150, 255, 170),
+		Color3.fromRGB(255, 200, 110), Color3.fromRGB(190, 150, 255), Color3.fromRGB(255, 120, 120),
+	}
+	for k = 1, 6 do
+		local a = math.rad(k * 60 + 15)
+		nc(makePart(f, "FountainCrystal", Vector3.new(0.7, 2.2, 0.7),
+			CFrame.new(8.6 * math.sin(a), 0.9, 104 + 8.6 * math.cos(a)) * CFrame.Angles(0.4, a, 0.3),
+			crystalColors[k], Enum.Material.Glass))
+	end
+	-- A visitor waving at the fountain.
+	makeFigure(f, CFrame.lookAt(Vector3.new(5.5, 0, 95), Vector3.new(0, 0, 104)),
+		Color3.fromRGB(90, 200, 220), Color3.fromRGB(70, 70, 80), Color3.fromRGB(198, 150, 110), "wave", nil)
+end
+
+-- GROUND BREAKUP: a warm ring road inside the parade ring, tiled
+-- walking paths from the plaza to the zones, and more coloured
+-- ground patches — no big unbroken flat surface left.
+local function BuildGroundDressing()
+	for i = 0, 43 do
+		local ang = (i / 44) * math.pi * 2
+		local x, z = 95 * math.cos(ang), 95 * math.sin(ang)
+		nc(makePart(world, "RingRoad", Vector3.new(7.6, 0.18, 5),
+			CFrame.lookAt(Vector3.new(x, 0.09, z), Vector3.new(0, 0.09, 0)),
+			(i % 2 == 0) and Color3.fromRGB(196, 164, 128) or Color3.fromRGB(174, 142, 114),
+			Enum.Material.Sandstone))
+	end
+	local function layPath(x1, z1, x2, z2)
+		local dist = math.sqrt((x2 - x1) ^ 2 + (z2 - z1) ^ 2)
+		local steps = math.ceil(dist / 5)
+		for s = 0, steps do
+			local t = s / steps
+			nc(makeDisc(world, "PathTile", 1.9, 0.16,
+				CFrame.new(x1 + (x2 - x1) * t, 0.08, z1 + (z2 - z1) * t),
+				(s % 2 == 0) and Color3.fromRGB(238, 220, 180) or Color3.fromRGB(240, 150, 120),
+				Enum.Material.Sandstone))
+		end
+	end
+	layPath(6, 136, -50, 104) -- plaza -> Beach Pool
+	layPath(10, 134, 76, 64) -- plaza -> Magma Market
+	layPath(-14, 128, -108, -30) -- plaza -> Obsidian Fields stairs
+	layPath(16, 150, 54, 192) -- plaza -> the docks
+	for _, p in ipairs({
+		{ 135, -55, 20, Color3.fromRGB(110, 190, 90) },
+		{ 150, -5, 18, Color3.fromRGB(245, 150, 130) },
+		{ 30, -145, 22, Color3.fromRGB(240, 214, 160) },
+		{ -160, -25, 20, Color3.fromRGB(110, 190, 90) },
+		{ -152, 80, 18, Color3.fromRGB(245, 150, 130) },
+		{ 95, -105, 20, Color3.fromRGB(110, 190, 90) },
+	}) do
+		nc(makeDisc(world, "GroundPatch", p[3], 0.14, CFrame.new(p[1], 0.07, p[2]), p[4], Enum.Material.SmoothPlastic))
+	end
+end
+
+-- BEACH + OCEAN LIFE: rock and coral in the shallows, striped
+-- buoys, three bobbing boats off the coasts, and a banded
+-- lighthouse on its own rock with a rotating beam.
+local function BuildOceanLife()
+	for _, cl in ipairs({ { 200, 214 }, { 250, 220 }, { 300, 208 }, { 340, 216 }, { 30, 222 } }) do
+		local ang = math.rad(cl[1])
+		local cx, cz = cl[2] * math.cos(ang), cl[2] * math.sin(ang)
+		for j = 1, 3 do
+			local s = 3.2 + j * 0.9
+			nc(makePart(world, "ShallowRock", Vector3.new(s, s * 0.7, s * 0.85),
+				CFrame.new(cx + (j - 2) * 3.4, -1.2, cz + ((j % 2) * 5) - 2.5) * CFrame.Angles(0.3, j * 1.3, 0.2),
+				Color3.fromRGB(128, 120, 118), Enum.Material.Slate))
+		end
+	end
+	local coralColors = { Color3.fromRGB(255, 130, 170), Color3.fromRGB(255, 160, 80), Color3.fromRGB(190, 130, 255) }
+	for j = 1, 10 do
+		local ang = math.rad(20 + j * 21)
+		local r = 203 + (j % 3) * 4
+		local coral = nc(makePart(world, "Coral", Vector3.new(1.1, 1.1, 1.1),
+			CFrame.new(r * math.cos(ang), -1.4, r * math.sin(ang)), coralColors[(j % 3) + 1], Enum.Material.SmoothPlastic))
+		coral.Shape = Enum.PartType.Ball
+	end
+	for j = 1, 6 do
+		local ang = math.rad(j * 55 + 15)
+		local bx, bz = 235 * math.cos(ang), 235 * math.sin(ang)
+		nc(makeDisc(world, "Buoy", 0.9, 1.6, CFrame.new(bx, -1.1, bz),
+			(j % 2 == 0) and Color3.fromRGB(230, 60, 50) or Color3.fromRGB(245, 240, 230), Enum.Material.SmoothPlastic))
+		local tip = nc(makePart(world, "BuoyTip", Vector3.new(0.55, 0.55, 0.55), CFrame.new(bx, 0.05, bz),
+			Color3.fromRGB(255, 160, 60), Enum.Material.Neon))
+		tip.Shape = Enum.PartType.Ball
+	end
+	local function buildBoat(name, x, z, lookX, lookZ, sailColor, phase)
+		local boat = Instance.new("Model")
+		boat.Name = name
+		boat.Parent = world
+		local cf = CFrame.lookAt(Vector3.new(x, -1.9, z), Vector3.new(lookX, -1.9, lookZ))
+		local hullWood = Color3.fromRGB(122, 84, 54)
+		nc(makePart(boat, "Hull", Vector3.new(3.0, 1.1, 7.2), cf * CFrame.new(0, 0.55, 0), hullWood, Enum.Material.Wood))
+		for _, sx in ipairs({ -1.35, 1.35 }) do
+			nc(makePart(boat, "Gunwale", Vector3.new(0.3, 0.5, 7.2), cf * CFrame.new(sx, 1.25, 0),
+				Color3.fromRGB(90, 60, 38), Enum.Material.Wood))
+		end
+		nc(makePart(boat, "Bow", Vector3.new(2.6, 1.0, 2.2),
+			cf * CFrame.new(0, 0.6, -4.2) * CFrame.Angles(0, math.rad(45), 0), hullWood, Enum.Material.Wood))
+		nc(makePart(boat, "Stern", Vector3.new(3.0, 1.3, 0.4), cf * CFrame.new(0, 0.8, 3.5),
+			Color3.fromRGB(90, 60, 38), Enum.Material.Wood))
+		nc(makePart(boat, "Mast", Vector3.new(0.28, 6.0, 0.28), cf * CFrame.new(0, 3.6, -0.3),
+			Color3.fromRGB(96, 70, 50), Enum.Material.Wood))
+		nc(makePart(boat, "Sail", Vector3.new(2.7, 3.8, 0.14), cf * CFrame.new(0, 3.9, 0.85),
+			Color3.fromRGB(246, 242, 235), Enum.Material.SmoothPlastic))
+		nc(makePart(boat, "Flag", Vector3.new(0.9, 0.55, 0.1), cf * CFrame.new(0.45, 6.9, -0.3),
+			sailColor, Enum.Material.Neon))
+		nc(makePart(boat, "BoatCrate", Vector3.new(1.1, 1.1, 1.1), cf * CFrame.new(0.6, 1.6, 2.6),
+			Color3.fromRGB(160, 118, 78), Enum.Material.Wood))
+		nc(makeDisc(boat, "BoatBarrel", 0.55, 1.1, cf * CFrame.new(-0.7, 1.6, 2.2),
+			Color3.fromRGB(120, 84, 56), Enum.Material.Wood))
+		table.insert(decoMovers, { name = name, kind = "boat", base = boat:GetPivot(), phase = phase })
+	end
+	buildBoat("Boat1", 88, 250, 140, 262, Color3.fromRGB(255, 120, 80), 0)
+	buildBoat("Boat2", -128, 208, -190, 190, Color3.fromRGB(110, 220, 255), 2.1)
+	buildBoat("Boat3", 228, -52, 280, -90, Color3.fromRGB(255, 200, 90), 4.2)
+	-- The lighthouse: rock stack, four red/white bands, gallery,
+	-- Neon lamp and the rotating beam the ambient loop sweeps.
+	local lh = Instance.new("Folder")
+	lh.Name = "Lighthouse"
+	lh.Parent = world
+	nc(makeDisc(lh, "LightRock", 7.5, 2, CFrame.new(152, -0.8, -152), Color3.fromRGB(120, 112, 110), Enum.Material.Slate))
+	nc(makeDisc(lh, "LightRock", 5.5, 2, CFrame.new(152, 0.6, -152), Color3.fromRGB(132, 124, 122), Enum.Material.Slate))
+	for i = 0, 3 do
+		nc(makeDisc(lh, "LightBand", 3.0, 3.2, CFrame.new(152, 3.2 + i * 3.2, -152),
+			(i % 2 == 0) and Color3.fromRGB(242, 240, 235) or Color3.fromRGB(215, 60, 55), Enum.Material.SmoothPlastic))
+	end
+	nc(makeDisc(lh, "LightGallery", 3.9, 0.5, CFrame.new(152, 14.65, -152), Color3.fromRGB(70, 58, 55), Enum.Material.Slate))
+	local lampBall = nc(makePart(lh, "LightLamp", Vector3.new(2.2, 2.2, 2.2), CFrame.new(152, 16.1, -152),
+		Color3.fromRGB(255, 230, 150), Enum.Material.Neon))
+	lampBall.Shape = Enum.PartType.Ball
+	local light = Instance.new("PointLight")
+	light.Color = Color3.fromRGB(255, 214, 140)
+	light.Range = 60
+	light.Brightness = 2
+	light.Parent = lampBall
+	nc(makeDisc(lh, "LightCap", 2.4, 1.8, CFrame.new(152, 17.9, -152), Color3.fromRGB(70, 58, 55), Enum.Material.Slate))
+	local beam = nc(makePart(world, "LighthouseBeam", Vector3.new(1.3, 1.3, 30),
+		CFrame.new(152, 16.1, -152) * CFrame.new(0, 0, -15.5), Color3.fromRGB(255, 240, 180), Enum.Material.Neon))
+	beam.Transparency = 0.55
+	table.insert(decoMovers, { name = "LighthouseBeam", kind = "beam", base = Vector3.new(152, 16.1, -152) })
+end
+
+-- SIGNAGE + LIFE: directional signs, pennant strings over the
+-- market / plaza / dock, orb lamps along the ring road, and the
+-- plaza + dock inhabitants.
+local function BuildSignageLife()
+	makeSignPost(world, Vector3.new(34, 4.8, 176), Vector3.new(0, 4, 148), 11, 3.2,
+		"THE DOCKS", "Boats and sea breeze", Color3.fromRGB(80, 200, 210))
+	makeSignPost(world, Vector3.new(-42, 4.8, 118), Vector3.new(0, 4, 140), 12, 3.2,
+		"BEACH POOL", "Mind the lava - it is warm", Color3.fromRGB(90, 180, 255))
+	makeSignPost(world, Vector3.new(64, 4.8, 40), Vector3.new(30, 4, 90), 13, 3.2,
+		"MAGMA MARKET", "Seven stalls of snacks", Color3.fromRGB(255, 150, 60))
+	-- Pennant poles: market arc (r 106), plaza crossing, dock mouth.
+	local poleTops = {}
+	local function pennantPole(x, z, h)
+		nc(makePart(world, "PennantPole", Vector3.new(0.35, h, 0.35), CFrame.new(x, h / 2, z),
+			Color3.fromRGB(110, 80, 54), Enum.Material.Wood))
+		local tip = nc(makePart(world, "PoleTip", Vector3.new(0.5, 0.5, 0.5), CFrame.new(x, h + 0.25, z),
+			Color3.fromRGB(255, 220, 130), Enum.Material.Neon))
+		tip.Shape = Enum.PartType.Ball
+		table.insert(poleTops, Vector3.new(x, h, z))
+	end
+	pennantPole(102.4, 27.4, 9.5)
+	pennantPole(86.8, 60.8, 9.5)
+	pennantPole(60.8, 86.8, 9.5)
+	makePennants(world, poleTops[1], poleTops[2])
+	makePennants(world, poleTops[2], poleTops[3])
+	pennantPole(-21, 142, 10)
+	pennantPole(21, 142, 10)
+	makePennants(world, poleTops[4], poleTops[5])
+	pennantPole(51, 192, 8.5)
+	pennantPole(65, 192, 8.5)
+	makePennants(world, poleTops[6], poleTops[7])
+	-- Orb lamps along the ring road.
+	for _, deg in ipairs({ 30, 90, 150, 210, 270, 330 }) do
+		local ang = math.rad(deg)
+		makeOrbLamp(world, 95 * math.cos(ang), 0, 95 * math.sin(ang))
+	end
+	-- Plaza stall vendors (behind the two existing plaza counters).
+	makeFigure(world, CFrame.lookAt(Vector3.new(28.3, 0, 160.6), Vector3.new(0, 0, 148)),
+		Color3.fromRGB(240, 120, 90), Color3.fromRGB(80, 70, 90), Color3.fromRGB(255, 205, 160), "vendor",
+		Color3.fromRGB(255, 170, 60))
+	makeFigure(world, CFrame.lookAt(Vector3.new(-28.3, 0, 160.6), Vector3.new(0, 0, 148)),
+		Color3.fromRGB(110, 190, 240), Color3.fromRGB(70, 80, 100), Color3.fromRGB(140, 100, 70), "vendor",
+		Color3.fromRGB(120, 220, 160))
+	-- Visitors: one waving by the Chief, one at the dock hut gazing
+	-- out to sea, one strolling to the Beach Pool.
+	makeFigure(world, CFrame.lookAt(Vector3.new(-13, 0, 136), Vector3.new(17, 0, 134)),
+		Color3.fromRGB(250, 200, 80), Color3.fromRGB(90, 90, 110), Color3.fromRGB(198, 150, 110), "wave", nil)
+	makeFigure(world, CFrame.lookAt(Vector3.new(58, 0, 224), Vector3.new(58, 0, 300)),
+		Color3.fromRGB(150, 220, 160), Color3.fromRGB(70, 90, 120), Color3.fromRGB(255, 205, 160), "stand", nil)
+	makeFigure(world, CFrame.lookAt(Vector3.new(-52, 0, 108), Vector3.new(-62, 0, 98)),
+		Color3.fromRGB(230, 130, 200), Color3.fromRGB(80, 70, 95), Color3.fromRGB(140, 100, 70), "stand", nil)
+end
+
+-- PALMS: sixteen curved palms — the empty north/west/east shore
+-- ring, the gaps between booths (in front of the plot line, never
+-- blocking an entrance), and a pair watching the dock.
+local function BuildPalms()
+	local shore = { { 185, 124 }, { 205, 130 }, { 230, 122 }, { 255, 128 }, { 280, 124 }, { 305, 130 }, { 330, 122 }, { 355, 126 } }
+	for i, s in ipairs(shore) do
+		local ang = math.rad(s[1])
+		local x, z = s[2] * math.cos(ang), s[2] * math.sin(ang)
+		makePalm(world, x, 0, z, 9 + (i % 4), math.cos(ang), math.sin(ang))
+	end
+	for i, deg in ipairs({ 35, 57, 79, 101, 123, 145 }) do
+		local ang = math.rad(deg)
+		local x, z = 116 * math.cos(ang), 116 * math.sin(ang)
+		makePalm(world, x, 0, z, 9.5 + (i % 3), math.cos(ang), math.sin(ang))
+	end
+	makePalm(world, 38, 0, 184, 10.5, -0.3, 0.95)
+	makePalm(world, 80, 0, 176, 9.5, 0.4, 0.9)
+end
+
+-- SKY LAYER: floating islets with crystals for eye-level depth, a
+-- static smoke-puff ring stack above the crater, and glowing
+-- embers frozen mid-drift over the lava lake.
+local function BuildSkyLayer()
+	for idx, islet in ipairs({ { 280, 55, -180 }, { -300, 68, 140 }, { 60, 82, -320 } }) do
+		local x, y, z = islet[1], islet[2], islet[3]
+		local g = Instance.new("Folder")
+		g.Name = "SkyIslet" .. idx
+		g.Parent = world
+		nc(makeDisc(g, "IsletRock", 9, 2.2, CFrame.new(x, y - 1, z), Color3.fromRGB(126, 110, 104), Enum.Material.Slate))
+		nc(makeDisc(g, "IsletGrass", 8.6, 0.7, CFrame.new(x, y + 0.4, z), Color3.fromRGB(105, 185, 95), Enum.Material.SmoothPlastic))
+		nc(makeDisc(g, "IsletUnder", 6.5, 3, CFrame.new(x, y - 3.6, z), Color3.fromRGB(116, 102, 98), Enum.Material.Slate))
+		nc(makeDisc(g, "IsletUnder", 4, 3.5, CFrame.new(x, y - 6.6, z), Color3.fromRGB(106, 94, 90), Enum.Material.Slate))
+		nc(makeDisc(g, "IsletTip", 1.8, 4, CFrame.new(x, y - 10, z), Color3.fromRGB(96, 86, 84), Enum.Material.Slate))
+		local cols = { Color3.fromRGB(120, 230, 255), Color3.fromRGB(255, 150, 220), Color3.fromRGB(170, 255, 190) }
+		for k = 1, 3 do
+			local a = math.rad(k * 120 + idx * 40)
+			nc(makePart(g, "IsletCrystal", Vector3.new(0.8, 3, 0.8),
+				CFrame.new(x + 4.5 * math.sin(a), y + 2, z + 4.5 * math.cos(a)) * CFrame.Angles(0.35, a, 0.25),
+				cols[k], Enum.Material.Glass))
+		end
+		if idx == 1 then
+			makePalm(g, x + 2, y + 0.75, z - 2, 6, 0.3, 0.9)
+		end
+	end
+	for ring, cfg in ipairs({ { 80, 5.5 }, { 90.5, 8 }, { 101, 10.5 } }) do
+		for j = 0, 7 do
+			local a = (j / 8) * math.pi * 2 + ring * 0.4
+			local puff = nc(makePart(world, "SmokePuff", Vector3.new(3.4, 3.4, 3.4),
+				CFrame.new(cfg[2] * math.cos(a), cfg[1], cfg[2] * math.sin(a)),
+				Color3.fromRGB(240, 244, 248), Enum.Material.SmoothPlastic))
+			puff.Shape = Enum.PartType.Ball
+			puff.Transparency = 0.3
+		end
+	end
+	for j = 1, 14 do
+		local a = j * 2.399963
+		local r = 1.5 + (j % 5) * 1.3
+		local ember = nc(makePart(world, "Ember", Vector3.new(0.8, 0.8, 0.8),
+			CFrame.new(r * math.cos(a), 71 + j * 1.8, r * math.sin(a)),
+			Color3.fromRGB(255, 150, 50), Enum.Material.Neon))
+		ember.Shape = Enum.PartType.Ball
+	end
+end
+
+-- CRATER RIM ACCESS (audit + fix): the old RimSteps start floating
+-- at y 8.3 under the shelf and their top two are buried INSIDE the
+-- Rim slab (tops 24.3 / 27.7 vs slab y 20..30) — there was no
+-- clean climb to the Rim (top y 30). This flight runs up the open
+-- ground east of the volcano: twelve protruding sandstone treads,
+-- a flush landing onto the Rim's south-east corner, handrail,
+-- stringer, lamps and a base sign — same language as the mesa fix.
+local function BuildRimAccess()
+	local stone = Color3.fromRGB(226, 192, 148)
+	local wood = Color3.fromRGB(110, 78, 50)
+	for i = 0, 11 do
+		local top = 2.5 * (i + 1)
+		local front = -33 - i * 2.9
+		makePart(world, "RimFlightStep", Vector3.new(8, top, 5.5), CFrame.new(56, top / 2, front - 2.75),
+			stone, Enum.Material.Sandstone)
+		local nosing = makePart(world, "RimNosing", Vector3.new(8.2, 0.28, 0.5),
+			CFrame.new(56, top - 0.14, front + 0.1), wood, Enum.Material.Wood)
+		nosing.CanCollide = false
+	end
+	-- Landing flush with the Rim top (y 30.0), bridging west from
+	-- the flight onto the shelf.
+	makePart(world, "RimLanding", Vector3.new(14, 1.2, 7), CFrame.new(51, 29.4, -67),
+		stone, Enum.Material.Sandstone)
+	local beamMid = Vector3.new(60.4, 15, -48.95)
+	local beam = makePart(world, "RimStringer", Vector3.new(0.55, 0.9, 44.1),
+		CFrame.lookAt(beamMid, Vector3.new(60.4, 29.6, -65.5)), wood, Enum.Material.Wood)
+	beam.CanCollide = false
+	for _, post in ipairs({ { -38, 5.0 }, { -47, 12.5 }, { -56, 20.0 }, { -63, 27.5 } }) do
+		makePart(world, "RimRailPost", Vector3.new(0.35, 2.6, 0.35),
+			CFrame.new(59.6, post[2] + 1.3, post[1]), wood, Enum.Material.Wood)
+	end
+	local railMid = Vector3.new(59.6, 18.97, -50.5)
+	local rail = makePart(world, "RimRail", Vector3.new(0.28, 0.28, 34.8),
+		CFrame.lookAt(railMid, Vector3.new(59.6, 30.2, -63.8)), wood, Enum.Material.Wood)
+	rail.CanCollide = false
+	makeOrbLamp(world, 63.5, 0, -29)
+	makeOrbLamp(world, 46, 30, -66)
+	makeSignPost(world, Vector3.new(56, 6.6, -25.5), Vector3.new(56, 5, 90), 15, 4.2,
+		"CRATER RIM", "Stairs up - Rekindle 3 zone", Color3.fromRGB(255, 120, 60))
+end
+
 -- Animate the lava: a slow pulse runs through every registered lava
 -- part so the island always looks one sneeze from erupting.
 task.spawn(function()
@@ -1313,6 +1921,33 @@ task.spawn(function()
 			local pulse = 0.5 + 0.5 * math.sin(t * 2.1 + i * 1.73)
 			part.Color = Color3.fromRGB(255, 94 + math.floor(44 * pulse), 28 + math.floor(20 * pulse))
 		end
+		task.wait(0.15)
+	end
+end)
+
+-- Ambient life loop: boats bobbing at anchor and the lighthouse
+-- beam sweeping the bay. This is the ONE decoration-only motion
+-- loop: it re-finds its parts by name under the world folder on
+-- every pass (a heal/rebuild simply leaves it idling on nils),
+-- its body is pcall-wrapped so an error can never reach gameplay,
+-- and it never reads or writes Game state.
+task.spawn(function()
+	while true do
+		pcall(function()
+			local t = os.clock()
+			for _, mv in ipairs(decoMovers) do
+				local inst = world:FindFirstChild(mv.name, true)
+				if inst then
+					if mv.kind == "boat" and inst:IsA("Model") then
+						inst:PivotTo(mv.base
+							* CFrame.new(0, math.sin(t * 0.9 + mv.phase) * 0.3, 0)
+							* CFrame.Angles(math.sin(t * 0.7 + mv.phase) * 0.02, 0, math.cos(t * 0.8 + mv.phase) * 0.03))
+					elseif mv.kind == "beam" and inst:IsA("BasePart") then
+						inst.CFrame = CFrame.new(mv.base) * CFrame.Angles(0, t * 0.45, 0) * CFrame.new(0, 0, -15.5)
+					end
+				end
+			end
+		end)
 		task.wait(0.15)
 	end
 end)
@@ -1330,6 +1965,14 @@ BuildSpawnPlaza()
 BuildPlayerBases()
 BuildRivalBases()
 BuildDressing()
+BuildMarketRow()
+BuildFountain()
+BuildGroundDressing()
+BuildOceanLife()
+BuildSignageLife()
+BuildPalms()
+BuildSkyLayer()
+BuildRimAccess()
 
 --====================================================================--
 -- Player lifecycle: claim a plot, create the State entry, land the
