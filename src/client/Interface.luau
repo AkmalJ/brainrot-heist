@@ -284,7 +284,7 @@ local function buildFigure(record, entry)
 	viewport.ZIndex = 43
 	viewport.BackgroundColor3 = entry.color:Lerp(Color3.fromRGB(0, 0, 0), 0.8)
 	viewport.BackgroundTransparency = 0
-	viewport.Ambient = Color3.fromRGB(175, 170, 165)
+	viewport.Ambient = Color3.fromRGB(235, 230, 225)
 	viewport.LightColor = Color3.fromRGB(255, 255, 255)
 	viewport.LightDirection = Vector3.new(-0.5, -1, -0.7)
 	viewport.Parent = record.frame
@@ -324,16 +324,31 @@ local function buildFigure(record, entry)
 	-- The Index tile colour: the brainrot's own body colour (its
 	-- largest part), so a discovered cell wears the character's
 	-- colours like the top games' prize books.
-	local tileColor, bestVol = nil, -1
+	local tileColor, bestVol, bestPart = nil, -1, nil
 	for _, rec in ipairs(parts) do
 		local s = rec.part.Size
 		local vol = s.X * s.Y * s.Z
 		if vol > bestVol then
 			bestVol = vol
 			tileColor = rec.color
+			bestPart = rec.part
 		end
 	end
 	record.tileColor = tileColor
+	-- A warm light riding the figure's body: lit only once the
+	-- brainrot is discovered, so caught ones visibly GLOW against
+	-- the dark silhouettes (Akmal: "yang ketangkep dibikin lebih
+	-- menyala biar menonjol").
+	if bestPart then
+		local glow = Instance.new("PointLight")
+		glow.Name = "IndexGlow"
+		glow.Brightness = 2.4
+		glow.Range = 9
+		glow.Color = Color3.fromRGB(255, 240, 210)
+		glow.Enabled = false
+		glow.Parent = bestPart
+		record.glowLight = glow
+	end
 	record.parts = parts
 end
 
@@ -1154,7 +1169,7 @@ local function buildIndexCells()
 		rarity.Size = UDim2.new(1, 0, 0, 16)
 		rarity.Position = UDim2.new(0, 0, 0, 122)
 		rarity.ZIndex = 43
-		local income = makeLabel(cell, fmtMoney(entry.income) .. "/s", 13, THEME.gold)
+		local income = makeLabel(cell, fmtMoney(entry.income) .. "/s", 13, Color3.fromRGB(96, 255, 156))
 		income.Size = UDim2.new(1, 0, 0, 16)
 		income.Position = UDim2.new(0, 0, 0, 139)
 		income.ZIndex = 43
@@ -1181,15 +1196,21 @@ local function refreshIndex()
 			-- it stays easy on the eyes — colourful with comfortable
 			-- contrast, never blown-out neon (Akmal's reference).
 			local tile = cell.tileColor or cell.entry.color
-			cell.frame.BackgroundColor3 = tile:Lerp(Color3.fromRGB(0, 0, 0), 0.52)
+			cell.frame.BackgroundColor3 = tile:Lerp(Color3.fromRGB(0, 0, 0), 0.4)
 			if cell.viewport then
-				cell.viewport.BackgroundColor3 = tile:Lerp(Color3.fromRGB(0, 0, 0), 0.58)
+				cell.viewport.BackgroundColor3 = tile:Lerp(Color3.fromRGB(0, 0, 0), 0.38)
+			end
+			if cell.glowLight then
+				cell.glowLight.Enabled = true
 			end
 			cell.big.Text = "🧠"
 			cell.name.Text = cell.entry.name .. (owned > 1 and (" x" .. owned) or "")
 			cell.name.TextColor3 = THEME.ink
 		else
 			cell.frame.BackgroundColor3 = Color3.fromRGB(16, 12, 11)
+			if cell.glowLight then
+				cell.glowLight.Enabled = false
+			end
 			cell.big.Text = "❓"
 			cell.name.Text = "???"
 			cell.name.TextColor3 = THEME.inkDim
@@ -1338,7 +1359,7 @@ local function buildUpgrades()
 			corner(rowFrame, 8)
 			rowFrame.Parent = upgradesScroll
 
-			local label = makeLabel(rowFrame, string.format("Tier %d — %s", tier.index, tier.label), 18, THEME.ink)
+			local label = makeLabel(rowFrame, string.format("Tier %d — %s%s", tier.index, tostring(tier.label), tierEffectText(track.id, tier.effect)), 18, THEME.ink)
 			label.ZIndex = 42
 			label.Position = UDim2.new(0, 10, 0, 0)
 			label.Size = UDim2.new(1, -170, 1, 0)
