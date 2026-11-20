@@ -192,7 +192,7 @@ local function buildCarriedVisual(character, name)
 	body.Material = Enum.Material.SmoothPlastic
 	body.CanCollide = false
 	body.Massless = true
-	body.CFrame = hrp.CFrame * CFrame.new(0, 1.6, 1.1)
+	body.CFrame = hrp.CFrame * CFrame.new(0, 1.7, 1.6)
 	body.Parent = model
 
 	local head = Instance.new("Part")

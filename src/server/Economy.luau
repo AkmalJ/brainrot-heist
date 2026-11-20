@@ -450,7 +450,7 @@ function Economy.Init(game)
 			if st.carried and st.carried.model then
 				local root = playerRoot(player)
 				if root then
-					st.carried.model:PivotTo(root.CFrame * CFrame.new(0, 3.6, 0) * CFrame.Angles(0, spin, 0))
+					st.carried.model:PivotTo(root.CFrame * CFrame.new(0, 3.55, 1.0) * CFrame.Angles(0, spin, 0))
 				end
 			end
 		end
