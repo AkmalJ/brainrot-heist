@@ -246,16 +246,81 @@ local function listify(container)
 	return out
 end
 
+local brainrotsModCache = nil
+local function getBrainrotsMod()
+	if brainrotsModCache then
+		return brainrotsModCache
+	end
+	local ok, mod = pcall(function()
+		return require(ReplicatedStorage:WaitForChild("Brainrots", 8))
+	end)
+	if ok and type(mod) == "table" then
+		brainrotsModCache = mod
+	end
+	return brainrotsModCache
+end
+
+local SILHOUETTE_COLOR = Color3.fromRGB(22, 18, 18)
+
+-- A live 3D portrait of the brainrot inside its index cell: full colour
+-- once owned, a dark silhouette while it is still a mystery.
+local function buildFigure(record, entry)
+	local mod = getBrainrotsMod()
+	if not mod or type(mod.BuildBrainrotModel) ~= "function" or type(entry.raw) ~= "table" then
+		return
+	end
+	local viewport = Instance.new("ViewportFrame")
+	viewport.Name = "Figure"
+	viewport.BackgroundTransparency = 1
+	viewport.BorderSizePixel = 0
+	viewport.Position = UDim2.new(0, 4, 0, 2)
+	viewport.Size = UDim2.new(1, -8, 0, 64)
+	viewport.ZIndex = 43
+	viewport.Ambient = Color3.fromRGB(135, 128, 122)
+	viewport.LightColor = Color3.fromRGB(255, 244, 230)
+	viewport.LightDirection = Vector3.new(-0.5, -1, -0.7)
+	viewport.Parent = record.frame
+
+	local world = Instance.new("WorldModel")
+	world.Parent = viewport
+
+	local model = mod.BuildBrainrotModel(entry.raw)
+	for _, d in ipairs(model:GetDescendants()) do
+		if d:IsA("BillboardGui") or d:IsA("BaseScript") or d:IsA("PointLight") then
+			d:Destroy()
+		end
+	end
+	model.Parent = world
+
+	local cf, size = model:GetBoundingBox()
+	local shift = CFrame.new(-cf.Position.X, -cf.Position.Y, -cf.Position.Z)
+	local parts = {}
+	for _, d in ipairs(model:GetDescendants()) do
+		if d:IsA("BasePart") then
+			d.CFrame = shift * d.CFrame
+			table.insert(parts, { part = d, color = d.Color, material = d.Material })
+		end
+	end
+
+	local maxDim = math.max(size.X, size.Y, size.Z)
+	local dist = (maxDim / 2) / math.tan(math.rad(17.5)) * 1.3
+	local cam = Instance.new("Camera")
+	cam.FieldOfView = 35
+	cam.CFrame = CFrame.lookAt(Vector3.new(0.55, 0.35, -1).Unit * dist, Vector3.new(0, 0, 0))
+	cam.Parent = viewport
+	viewport.CurrentCamera = cam
+
+	record.parts = parts
+end
+
 local castCache = nil
 local function loadCast()
 	if castCache then
 		return castCache
 	end
 	local entries = {}
-	local ok, mod = pcall(function()
-		return require(ReplicatedStorage:WaitForChild("Brainrots", 8))
-	end)
-	if ok and type(mod) == "table" then
+	local mod = getBrainrotsMod()
+	if type(mod) == "table" then
 		for i, raw in ipairs(listify(mod)) do
 			if type(raw) == "table" then
 				local entry = {
@@ -872,7 +937,7 @@ indexScroll.ZIndex = 41
 indexScroll.Parent = indexBody
 
 local gridLayout = Instance.new("UIGridLayout")
-gridLayout.CellSize = UDim2.new(0, 108, 0, 122)
+gridLayout.CellSize = UDim2.new(0, 108, 0, 140)
 gridLayout.CellPadding = UDim2.new(0, 8, 0, 8)
 gridLayout.SortOrder = Enum.SortOrder.LayoutOrder
 gridLayout.Parent = indexScroll
@@ -942,23 +1007,28 @@ local function buildIndexCells()
 		big.Position = UDim2.new(0, 0, 0, 4)
 		big.ZIndex = 43
 		local name = makeLabel(cell, entry.name, 14, THEME.ink, Enum.Font.GothamBlack)
-		name.Size = UDim2.new(1, -6, 0, 34)
-		name.Position = UDim2.new(0, 3, 0, 44)
+		name.Size = UDim2.new(1, -6, 0, 30)
+		name.Position = UDim2.new(0, 3, 0, 70)
 		name.TextWrapped = true
 		name.ZIndex = 43
 		local rarity = makeLabel(cell, tostring(entry.rarity), 12, entry.color, Enum.Font.GothamBlack)
 		rarity.Size = UDim2.new(1, 0, 0, 16)
-		rarity.Position = UDim2.new(0, 0, 0, 78)
+		rarity.Position = UDim2.new(0, 0, 0, 102)
 		rarity.ZIndex = 43
 		local income = makeLabel(cell, fmtMoney(entry.income) .. "/s", 13, THEME.gold)
 		income.Size = UDim2.new(1, 0, 0, 16)
-		income.Position = UDim2.new(0, 0, 0, 96)
+		income.Position = UDim2.new(0, 0, 0, 120)
 		income.ZIndex = 43
 
 		cell.MouseButton1Click:Connect(function()
 			selectEntry(entry)
 		end)
-		indexCells[entry.id] = { frame = cell, big = big, name = name, rarity = rarity, income = income, entry = entry }
+		local record = { frame = cell, big = big, name = name, rarity = rarity, income = income, entry = entry }
+		indexCells[entry.id] = record
+		local figOk = pcall(buildFigure, record, entry)
+		if figOk and record.parts then
+			big.Visible = false
+		end
 	end
 end
 
@@ -976,6 +1046,17 @@ local function refreshIndex()
 			cell.big.Text = "❓"
 			cell.name.Text = "???"
 			cell.name.TextColor3 = THEME.inkDim
+		end
+		if cell.parts then
+			for _, rec in ipairs(cell.parts) do
+				if owned > 0 then
+					rec.part.Color = rec.color
+					rec.part.Material = rec.material
+				else
+					rec.part.Color = SILHOUETTE_COLOR
+					rec.part.Material = Enum.Material.SmoothPlastic
+				end
+			end
 		end
 	end
 	local found = foundCount()
