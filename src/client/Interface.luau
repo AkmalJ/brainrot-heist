@@ -954,6 +954,7 @@ gridLayout.SortOrder = Enum.SortOrder.LayoutOrder
 gridLayout.Parent = indexScroll
 
 local milestoneLabel = makeLabel(indexBody, "", 19, THEME.gem)
+milestoneLabel.ZIndex = 42
 milestoneLabel.Position = UDim2.new(0, 0, 1, -112)
 milestoneLabel.Size = UDim2.new(1, 0, 0, 26)
 milestoneLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -994,7 +995,7 @@ local function selectEntry(entry)
 	else
 		detailTitle.Text = string.format("???  ·  %s  ·  %s/s  ·  not caught yet",
 			tostring(entry.rarity), fmtMoney(entry.income))
-		detailTitle.TextColor3 = THEME.inkDim
+		detailTitle.TextColor3 = THEME.ink
 	end
 	detailJoke.Text = jokeFor(entry.raw or entry)
 end
@@ -1153,6 +1154,7 @@ local function buildUpgrades()
 	for _, track in ipairs(loadUpgrades()) do
 		order += 1
 		local header = makeLabel(upgradesScroll, string.format("%s %s", tostring(track.icon), track.name), 23, THEME.gold, Enum.Font.GothamBlack)
+		header.ZIndex = 42
 		header.LayoutOrder = order * 100
 		header.Size = UDim2.new(1, 0, 0, 32)
 		header.TextXAlignment = Enum.TextXAlignment.Left
@@ -1168,6 +1170,7 @@ local function buildUpgrades()
 			rowFrame.Parent = upgradesScroll
 
 			local label = makeLabel(rowFrame, string.format("Tier %d — %s", tier.index, tier.label), 18, THEME.ink)
+			label.ZIndex = 42
 			label.Position = UDim2.new(0, 10, 0, 0)
 			label.Size = UDim2.new(1, -170, 1, 0)
 			label.TextXAlignment = Enum.TextXAlignment.Left
@@ -1202,6 +1205,7 @@ do
 	local y = 0
 	local function line(size, color, font)
 		local l = makeLabel(rekindleBody, "", size, color, font or Enum.Font.GothamBold)
+		l.ZIndex = 42
 		l.Position = UDim2.new(0, 6, 0, y)
 		l.Size = UDim2.new(1, -12, 0, size + 12)
 		l.TextXAlignment = Enum.TextXAlignment.Left
@@ -1219,6 +1223,7 @@ do
 end
 
 local rekindleGo = makeButton(rekindleBody, "🌋 REKINDLE!", 30, THEME.lava)
+rekindleGo.ZIndex = 42
 rekindleGo.Size = UDim2.new(0, 340, 0, 64)
 rekindleGo.AnchorPoint = Vector2.new(0.5, 1)
 rekindleGo.Position = UDim2.new(0.5, 0, 1, -6)
@@ -1246,11 +1251,13 @@ end
 -- ---------- Quest panel ----------
 
 local questNameLabel = makeLabel(questBody, "", 26, THEME.gold, Enum.Font.GothamBlack)
+questNameLabel.ZIndex = 42
 questNameLabel.Position = UDim2.new(0, 6, 0, 0)
 questNameLabel.Size = UDim2.new(1, -12, 0, 36)
 questNameLabel.TextXAlignment = Enum.TextXAlignment.Left
 
 local questTextLabel = makeLabel(questBody, "", 21, THEME.ink)
+questTextLabel.ZIndex = 42
 questTextLabel.Position = UDim2.new(0, 6, 0, 44)
 questTextLabel.Size = UDim2.new(1, -12, 0, 60)
 questTextLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -1263,6 +1270,7 @@ questBarOuter.BorderSizePixel = 0
 questBarOuter.Position = UDim2.new(0, 6, 0, 116)
 questBarOuter.Size = UDim2.new(1, -12, 0, 34)
 corner(questBarOuter, 8)
+questBarOuter.ZIndex = 42
 questBarOuter.Parent = questBody
 
 local questBarFill = Instance.new("Frame")
@@ -1270,6 +1278,7 @@ questBarFill.BackgroundColor3 = THEME.gem
 questBarFill.BorderSizePixel = 0
 questBarFill.Size = UDim2.fromScale(0, 1)
 corner(questBarFill, 8)
+questBarFill.ZIndex = 42
 questBarFill.Parent = questBarOuter
 
 local questBarText = makeLabel(questBarOuter, "0 / 1", 20, Color3.new(1, 1, 1), Enum.Font.GothamBlack)
@@ -1277,11 +1286,13 @@ questBarText.Size = UDim2.fromScale(1, 1)
 questBarText.ZIndex = 43
 
 local questRewardLabel = makeLabel(questBody, "", 22, THEME.good, Enum.Font.GothamBlack)
+questRewardLabel.ZIndex = 42
 questRewardLabel.Position = UDim2.new(0, 6, 0, 162)
 questRewardLabel.Size = UDim2.new(1, -12, 0, 32)
 questRewardLabel.TextXAlignment = Enum.TextXAlignment.Left
 
 local questClaim = makeButton(questBody, "CLAIM REWARD", 26, THEME.good)
+questClaim.ZIndex = 42
 questClaim.Size = UDim2.new(0, 320, 0, 58)
 questClaim.AnchorPoint = Vector2.new(0.5, 1)
 questClaim.Position = UDim2.new(0.5, 0, 1, -6)
