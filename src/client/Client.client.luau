@@ -214,7 +214,7 @@ local function buildCarriedVisual(character, name)
 	motor.Name = "CarryMotor"
 	motor.Part0 = hrp
 	motor.Part1 = body
-	motor.C0 = CFrame.new(0, 1.6, 1.1)
+	motor.C0 = CFrame.new(0, 1.7, 1.6)
 	motor.C1 = CFrame.new()
 	motor.Parent = body
 

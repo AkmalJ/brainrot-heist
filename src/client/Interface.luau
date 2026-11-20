@@ -1205,7 +1205,7 @@ local function refreshIndex()
 			end
 			cell.big.Text = "🧠"
 			cell.name.Text = cell.entry.name .. (owned > 1 and (" x" .. owned) or "")
-			cell.name.TextColor3 = THEME.ink
+			cell.name.TextColor3 = cell.entry.color:Lerp(Color3.fromRGB(255, 255, 255), 0.55)
 		else
 			cell.frame.BackgroundColor3 = Color3.fromRGB(16, 12, 11)
 			if cell.glowLight then
@@ -1213,7 +1213,7 @@ local function refreshIndex()
 			end
 			cell.big.Text = "❓"
 			cell.name.Text = "???"
-			cell.name.TextColor3 = THEME.inkDim
+			cell.name.TextColor3 = cell.entry.color:Lerp(Color3.fromRGB(0, 0, 0), 0.25)
 		end
 		if cell.parts then
 			for _, rec in ipairs(cell.parts) do
