@@ -564,6 +564,35 @@ local rebirthLabel = topStat("🔥 0")
 rebirthLabel.TextColor3 = THEME.magma
 
 --====================================================================--
+-- Music mute button (top-left, below the Roblox core buttons —
+-- clear of the top bar on the right and the BASE OPEN button).
+-- Session-only state; Client.client.luau hooks onMusicMuteToggled
+-- to actually stop/start the playlist.
+--====================================================================--
+
+local musicMuted = false
+local musicButton = makeButton(gui, "🔊", 24, THEME.panel)
+musicButton.Name = "MusicMuteButton"
+musicButton.Position = UDim2.new(0, 10, 0, 66)
+musicButton.Size = UDim2.new(0, 52, 0, 52)
+
+function Interface.setMusicMuted(muted)
+	musicMuted = muted
+	musicButton.Text = muted and "🔇" or "🔊"
+	if Interface.onMusicMuteToggled then
+		pcall(Interface.onMusicMuteToggled, muted)
+	end
+end
+
+function Interface.isMusicMuted()
+	return musicMuted
+end
+
+musicButton.MouseButton1Click:Connect(function()
+	Interface.setMusicMuted(not musicMuted)
+end)
+
+--====================================================================--
 -- Event / eruption banner (top-center, under the bar)
 --====================================================================--
 

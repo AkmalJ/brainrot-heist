@@ -49,6 +49,7 @@ local remotes = {
 	ToggleLock = grabRemote("ToggleLock"),
 	ClaimQuest = grabRemote("ClaimQuest"),
 	RerollMutation = grabRemote("RerollMutation"),
+	SetSprint = grabRemote("SetSprint"),
 	HudUpdate = grabRemote("HudUpdate"),
 	Toast = grabRemote("Toast"),
 	Fx = grabRemote("Fx"),
@@ -488,5 +489,142 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 		if Interface.closePanels then
 			Interface.closePanels()
 		end
+	end
+end)
+
+--====================================================================--
+-- Sprint: hold Shift (left or right) to run. The server owns the
+-- actual speed (Progression.ApplyMovement, x1.5); the client only
+-- reports the flag, and only when it changes. InputBegan is
+-- ignored while the game processed the key (typing in chat); the
+-- release is always reported so sprint can never stick on.
+--====================================================================--
+
+local sprintHeld = false
+local function setSprint(on)
+	if sprintHeld == on then
+		return
+	end
+	sprintHeld = on
+	if remotes.SetSprint then
+		remotes.SetSprint:FireServer(on)
+	end
+end
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then
+		return
+	end
+	if input.KeyCode == Enum.KeyCode.LeftShift or input.KeyCode == Enum.KeyCode.RightShift then
+		setSprint(true)
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+	if input.KeyCode == Enum.KeyCode.LeftShift or input.KeyCode == Enum.KeyCode.RightShift then
+		setSprint(false)
+	end
+end)
+
+--====================================================================--
+-- Music: auto-discovery playlist. The server creates an empty
+-- ReplicatedStorage > MusicTracks folder; Akmal drops free Studio
+-- Toolbox Sound tracks into it himself. The client rotates through
+-- every Sound found there (re-scanning when a track ends or a new
+-- one appears); an empty folder simply means silence. Playback
+-- volume is modest (0.35) and the HUD speaker button (Interface)
+-- mutes for the session. Everything is pcall-wrapped: a music
+-- error can never break the client.
+--====================================================================--
+
+local musicPlayer = nil
+local musicMuted = false
+
+local function collectTracks(folder)
+	local tracks = {}
+	for _, child in ipairs(folder:GetChildren()) do
+		if child:IsA("Sound") and child.SoundId ~= "" then
+			table.insert(tracks, child)
+		end
+	end
+	table.sort(tracks, function(a, b)
+		return a.Name < b.Name
+	end)
+	return tracks
+end
+
+local function startMusic()
+	pcall(function()
+		local folder = ReplicatedStorage:FindFirstChild("MusicTracks")
+		if not folder or musicMuted then
+			return
+		end
+		if musicPlayer and musicPlayer.IsPlaying then
+			return
+		end
+		local tracks = collectTracks(folder)
+		if #tracks == 0 then
+			return
+		end
+		if not musicPlayer then
+			musicPlayer = Instance.new("Sound")
+			musicPlayer.Name = "MagmaMusicPlayer"
+			musicPlayer.Volume = 0.35
+			musicPlayer.Parent = SoundService
+			musicPlayer.Ended:Connect(function()
+				pcall(function()
+					if musicMuted or not musicPlayer then
+						return
+					end
+					local f2 = ReplicatedStorage:FindFirstChild("MusicTracks")
+					if not f2 then
+						return
+					end
+					local list = collectTracks(f2)
+					if #list == 0 then
+						return
+					end
+					-- Advance past the track that just ended; the
+					-- list wraps, so a single track loops itself.
+					local idx = 1
+					for i, tr in ipairs(list) do
+						if tr.SoundId == musicPlayer.SoundId then
+							idx = i
+							break
+						end
+					end
+					musicPlayer.SoundId = list[(idx % #list) + 1].SoundId
+					musicPlayer.TimePosition = 0
+					musicPlayer:Play()
+				end)
+			end)
+		end
+		musicPlayer.SoundId = tracks[1].SoundId
+		musicPlayer.TimePosition = 0
+		musicPlayer:Play()
+	end)
+end
+
+-- The HUD mute button (Interface) calls this; session-only state.
+Interface.onMusicMuteToggled = function(muted)
+	musicMuted = muted
+	pcall(function()
+		if muted then
+			if musicPlayer then
+				musicPlayer:Stop()
+			end
+		else
+			startMusic()
+		end
+	end)
+end
+
+task.spawn(function()
+	local folder = ReplicatedStorage:WaitForChild("MusicTracks", 30)
+	if folder then
+		folder.ChildAdded:Connect(function()
+			task.delay(0.5, startMusic)
+		end)
+		startMusic()
 	end
 end)

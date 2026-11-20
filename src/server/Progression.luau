@@ -163,7 +163,8 @@ end
 
 --====================================================================--
 -- Movement: WalkSpeed = 16 x Speed Boots x carry effect (softened
--- by the Carry Harness). Called whenever any input changes.
+-- by the Carry Harness) x 1.5 while sprinting (hold Shift, set by
+-- the SetSprint remote). Called whenever any input changes.
 --====================================================================--
 
 local CARRY_FACTORS = { none = 1, slow = 0.8, heavy = 0.6, speed = 1.15, jump = 1 }
@@ -193,6 +194,7 @@ local function ApplyMovement(player)
 		end
 	end
 	humanoid.WalkSpeed = 16 * Upgrades.SpeedMult(st.upgrades["Speed Boots"]) * factor
+		* (st.sprinting and 1.5 or 1)
 	humanoid.JumpPower = jumpPower
 end
 
@@ -283,6 +285,14 @@ function Progression.Init(game)
 		Progression.BuyUpgrade(player, trackName, tier)
 	end)
 	G.Remotes.DoRekindle.OnServerEvent:Connect(OnDoRekindle)
+	G.Remotes.SetSprint.OnServerEvent:Connect(function(player, on)
+		local st = G.State[player]
+		if not st then
+			return
+		end
+		st.sprinting = (on == true)
+		ApplyMovement(player)
+	end)
 	G.Remotes.ClaimQuest.OnServerEvent:Connect(OnClaimQuest)
 
 	G.Remotes.GetIndexState.OnServerInvoke = function(player)
