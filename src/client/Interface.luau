@@ -183,13 +183,19 @@ local QUESTS = {
 	{ name = "Volcano Master", text = "Discover all %d brainrots in the index.", reward = "+1,000 Gems" },
 }
 
+-- Mirrors Brainrots.IndexMilestones on the server (titles + gem
+-- rewards). The old table here invented income bonuses the server
+-- never paid — the emblem chips below now show the real rewards.
 local MILESTONES = {
-	{ found = 5, bonus = "+3% income" },
-	{ found = 10, bonus = "+5% income" },
-	{ found = 15, bonus = "+8% income" },
-	{ found = 25, bonus = "+10% income" },
-	{ found = 35, bonus = "+15% income" },
-	{ found = 44, bonus = "+25% income + Magma Crown" },
+	{ found = 5, title = "Ash Sniffer", gems = 5 },
+	{ found = 10, title = "Grill Scout", gems = 10 },
+	{ found = 15, title = "Ember Ranger", gems = 15 },
+	{ found = 20, title = "Obsidian Hunter", gems = 25 },
+	{ found = 25, title = "Caldera Collector", gems = 40 },
+	{ found = 30, title = "Magma Curator", gems = 60 },
+	{ found = 35, title = "Volcano Archivist", gems = 90 },
+	{ found = 40, title = "Keeper of the Crater", gems = 140 },
+	{ found = 44, title = "BRAINROT VOLCANO MASTER", gems = 250 },
 }
 
 local FALLBACK_JOKES = {
@@ -282,6 +288,7 @@ local function buildFigure(record, entry)
 	viewport.LightColor = Color3.fromRGB(255, 255, 255)
 	viewport.LightDirection = Vector3.new(-0.5, -1, -0.7)
 	viewport.Parent = record.frame
+	record.viewport = viewport
 
 	local world = Instance.new("WorldModel")
 	world.Parent = viewport
@@ -314,6 +321,19 @@ local function buildFigure(record, entry)
 	cam.Parent = viewport
 	viewport.CurrentCamera = cam
 
+	-- The Index tile colour: the brainrot's own body colour (its
+	-- largest part), so a discovered cell wears the character's
+	-- colours like the top games' prize books.
+	local tileColor, bestVol = nil, -1
+	for _, rec in ipairs(parts) do
+		local s = rec.part.Size
+		local vol = s.X * s.Y * s.Z
+		if vol > bestVol then
+			bestVol = vol
+			tileColor = rec.color
+		end
+	end
+	record.tileColor = tileColor
 	record.parts = parts
 end
 
@@ -345,6 +365,32 @@ local function loadCast()
 	return entries
 end
 
+local TRACK_ICONS = {
+	["Speed Boots"] = "👟",
+	["Carry Harness"] = "🎒",
+	["Base Lock"] = "🔒",
+	["Luck Charm"] = "🍀",
+}
+
+-- One short effect summary per tier, in the track's own units
+-- (Upgrades.luau header): boots = speed %, harness = penalty cut,
+-- lock = extra seconds on the 60 s base, charm = luck %.
+local function tierEffectText(trackId, effect)
+	if type(effect) ~= "number" then
+		return ""
+	end
+	if trackId == "Speed Boots" then
+		return string.format(" · +%d%% speed", effect)
+	elseif trackId == "Carry Harness" then
+		return string.format(" · carry penalty -%d%%", effect)
+	elseif trackId == "Base Lock" then
+		return string.format(" · lock lasts %ds", 60 + effect)
+	elseif trackId == "Luck Charm" then
+		return string.format(" · +%d%% luck", effect)
+	end
+	return ""
+end
+
 local upgradesCache = nil
 local function loadUpgrades()
 	if upgradesCache then
@@ -355,29 +401,77 @@ local function loadUpgrades()
 		return require(ReplicatedStorage:WaitForChild("Upgrades", 8))
 	end)
 	if ok and type(mod) == "table" then
-		for i, rawTrack in ipairs(listify(mod)) do
-			if type(rawTrack) == "table" then
+		-- The real module shape: Tracks is a MAP keyed by track
+		-- name (the name lives in the key, not in a field) with a
+		-- TrackOrder list. Read it directly — the generic probe
+		-- loses the keys and the panel shows "Track 1/2/3".
+		if type(mod.Tracks) == "table" then
+			local names, seen = {}, {}
+			if type(mod.TrackOrder) == "table" then
+				for _, n in ipairs(mod.TrackOrder) do
+					if mod.Tracks[n] and not seen[n] then
+						seen[n] = true
+						table.insert(names, n)
+					end
+				end
+			end
+			for n in pairs(mod.Tracks) do
+				if not seen[n] then
+					seen[n] = true
+					table.insert(names, n)
+				end
+			end
+			for _, name in ipairs(names) do
+				local rawTrack = mod.Tracks[name]
 				local tiers = {}
-				for j, rawTier in ipairs(listify(firstField(rawTrack, { "tiers", "Tiers", "levels", "Levels" }) or {})) do
-					if type(rawTier) == "table" then
-						table.insert(tiers, {
-							index = j,
-							cost = tonumber(firstField(rawTier, { "cost", "Cost", "price", "Price" })) or 0,
-							label = firstField(rawTier, { "label", "Label", "name", "Name", "desc", "description", "effect", "Effect" })
-								or ("Tier " .. j),
-							raw = rawTier,
-						})
-					elseif type(rawTier) == "number" then
-						table.insert(tiers, { index = j, cost = rawTier, label = "Tier " .. j, raw = rawTier })
+				if type(rawTrack) == "table" and type(rawTrack.tiers) == "table" then
+					for j, rawTier in ipairs(rawTrack.tiers) do
+						if type(rawTier) == "table" then
+							table.insert(tiers, {
+								index = j,
+								cost = tonumber(rawTier.cost) or 0,
+								label = rawTier.label or ("Tier " .. j),
+								effect = tonumber(rawTier.effect),
+								raw = rawTier,
+							})
+						end
 					end
 				end
 				table.insert(tracks, {
-					id = firstField(rawTrack, { "id", "Id", "key", "Key", "name", "Name" }) or ("track" .. i),
-					name = firstField(rawTrack, { "name", "Name", "displayName", "DisplayName" }) or ("Track " .. i),
-					icon = firstField(rawTrack, { "icon", "Icon", "emoji" }) or "⬆",
+					id = name,
+					name = name,
+					icon = TRACK_ICONS[name] or "⬆",
+					blurb = (type(rawTrack) == "table") and rawTrack.blurb or nil,
 					tiers = tiers,
 					raw = rawTrack,
 				})
+			end
+		end
+		if #tracks == 0 then
+			for i, rawTrack in ipairs(listify(mod)) do
+				if type(rawTrack) == "table" then
+					local tiers = {}
+					for j, rawTier in ipairs(listify(firstField(rawTrack, { "tiers", "Tiers", "levels", "Levels" }) or {})) do
+						if type(rawTier) == "table" then
+							table.insert(tiers, {
+								index = j,
+								cost = tonumber(firstField(rawTier, { "cost", "Cost", "price", "Price" })) or 0,
+								label = firstField(rawTier, { "label", "Label", "name", "Name", "desc", "description", "effect", "Effect" })
+									or ("Tier " .. j),
+								raw = rawTier,
+							})
+						elseif type(rawTier) == "number" then
+							table.insert(tiers, { index = j, cost = rawTier, label = "Tier " .. j, raw = rawTier })
+						end
+					end
+					table.insert(tracks, {
+						id = firstField(rawTrack, { "id", "Id", "key", "Key", "name", "Name" }) or ("track" .. i),
+						name = firstField(rawTrack, { "name", "Name", "displayName", "DisplayName" }) or ("Track " .. i),
+						icon = firstField(rawTrack, { "icon", "Icon", "emoji" }) or "⬆",
+						tiers = tiers,
+						raw = rawTrack,
+					})
+				end
 			end
 		end
 	end
@@ -970,11 +1064,20 @@ gridLayout.CellPadding = UDim2.new(0, 8, 0, 8)
 gridLayout.SortOrder = Enum.SortOrder.LayoutOrder
 gridLayout.Parent = indexScroll
 
-local milestoneLabel = makeLabel(indexBody, "", 19, THEME.gem)
-milestoneLabel.ZIndex = 42
-milestoneLabel.Position = UDim2.new(0, 0, 1, -112)
-milestoneLabel.Size = UDim2.new(1, 0, 0, 26)
-milestoneLabel.TextXAlignment = Enum.TextXAlignment.Left
+-- The milestone emblem strip (refreshIndex fills it with chips).
+local milestoneBar = Instance.new("Frame")
+milestoneBar.Name = "MilestoneBar"
+milestoneBar.BackgroundTransparency = 1
+milestoneBar.BorderSizePixel = 0
+milestoneBar.Position = UDim2.new(0, 0, 1, -112)
+milestoneBar.Size = UDim2.new(1, 0, 0, 26)
+milestoneBar.ZIndex = 42
+milestoneBar.Parent = indexBody
+local milestoneLayout = Instance.new("UIListLayout")
+milestoneLayout.FillDirection = Enum.FillDirection.Horizontal
+milestoneLayout.Padding = UDim.new(0, 6)
+milestoneLayout.SortOrder = Enum.SortOrder.LayoutOrder
+milestoneLayout.Parent = milestoneBar
 
 local indexDetail = Instance.new("Frame")
 indexDetail.BackgroundColor3 = THEME.panelLight
@@ -1074,7 +1177,14 @@ local function refreshIndex()
 		local owned = ownedOf(cell.entry)
 		local found = discoveredOf(cell.entry)
 		if found then
-			cell.frame.BackgroundColor3 = THEME.panelLight
+			-- Rich but soft: the character's own colour, deepened so
+			-- it stays easy on the eyes — colourful with comfortable
+			-- contrast, never blown-out neon (Akmal's reference).
+			local tile = cell.tileColor or cell.entry.color
+			cell.frame.BackgroundColor3 = tile:Lerp(Color3.fromRGB(0, 0, 0), 0.52)
+			if cell.viewport then
+				cell.viewport.BackgroundColor3 = tile:Lerp(Color3.fromRGB(0, 0, 0), 0.58)
+			end
 			cell.big.Text = "🧠"
 			cell.name.Text = cell.entry.name .. (owned > 1 and (" x" .. owned) or "")
 			cell.name.TextColor3 = THEME.ink
@@ -1098,23 +1208,52 @@ local function refreshIndex()
 	end
 	local found = foundCount()
 	local total = #loadCast()
-	local current, nextUp = "no bonus yet", nil
+	-- Emblem chips: one per milestone — green once claimed, gold
+	-- for the next one up, dim after that (the reference prize
+	-- book's milestone strip).
+	for _, child in ipairs(milestoneBar:GetChildren()) do
+		if child:IsA("Frame") then
+			child:Destroy()
+		end
+	end
+	local nextUp = nil
 	for _, m in ipairs(MILESTONES) do
-		if found >= m.found then
-			current = m.bonus
-		elseif not nextUp then
+		if found < m.found and not nextUp then
 			nextUp = m
 		end
 	end
-	if nextUp then
-		milestoneLabel.Text = string.format("🏆 %d/%d found: %s · next at %d: %s", found, total, current, nextUp.found, nextUp.bonus)
-	else
-		milestoneLabel.Text = string.format("🏆 %d/%d found: %s — INDEX COMPLETE!", found, total, current)
+	for i, m in ipairs(MILESTONES) do
+		local chip = Instance.new("Frame")
+		chip.BorderSizePixel = 0
+		chip.Size = UDim2.new(1 / #MILESTONES, -6, 1, 0)
+		chip.LayoutOrder = i
+		chip.ZIndex = 42
+		corner(chip, 6)
+		local chipLabel = makeLabel(chip, "", 13, THEME.ink, Enum.Font.GothamBold)
+		chipLabel.Size = UDim2.new(1, 0, 1, 0)
+		chipLabel.ZIndex = 43
+		chipLabel.TextXAlignment = Enum.TextXAlignment.Center
+		if found >= m.found then
+			chip.BackgroundColor3 = Color3.fromRGB(34, 88, 44)
+			chipLabel.Text = string.format("✓ %d · +%d💎", m.found, m.gems)
+			chipLabel.TextColor3 = Color3.fromRGB(214, 255, 220)
+		elseif m == nextUp then
+			chip.BackgroundColor3 = Color3.fromRGB(122, 84, 18)
+			chipLabel.Text = string.format("🏆 %d · +%d💎", m.found, m.gems)
+			chipLabel.TextColor3 = Color3.fromRGB(255, 236, 190)
+		else
+			chip.BackgroundColor3 = THEME.panelLight
+			chipLabel.Text = string.format("%d · +%d💎", m.found, m.gems)
+			chipLabel.TextColor3 = THEME.inkDim
+		end
+		chip.Parent = milestoneBar
 	end
 	if selectedEntry then
 		selectEntry(selectedEntry)
+	elseif nextUp then
+		detailJoke.Text = string.format("Collection: %d of %d found · next emblem: %s at %d · tap any brainrot above for its stats + joke", found, total, nextUp.title, nextUp.found)
 	else
-		detailJoke.Text = string.format("Collection: %d of %d found · tap any brainrot above to see its stats + joke", found, total)
+		detailJoke.Text = string.format("Collection: %d of %d found — every emblem claimed! · tap any brainrot above for its stats + joke", found, total)
 	end
 end
 
@@ -1181,6 +1320,13 @@ local function buildUpgrades()
 		header.LayoutOrder = order * 100
 		header.Size = UDim2.new(1, 0, 0, 32)
 		header.TextXAlignment = Enum.TextXAlignment.Left
+		if track.blurb then
+			local blurb = makeLabel(upgradesScroll, track.blurb, 15, THEME.inkDim)
+			blurb.ZIndex = 42
+			blurb.LayoutOrder = order * 100 + 50
+			blurb.Size = UDim2.new(1, 0, 0, 20)
+			blurb.TextXAlignment = Enum.TextXAlignment.Left
+		end
 		for _, tier in ipairs(track.tiers) do
 			order += 1
 			local rowFrame = Instance.new("Frame")

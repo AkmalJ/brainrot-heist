@@ -59,7 +59,7 @@ end
 --====================================================================--
 
 Lighting.ClockTime = 13.4
-Lighting.Brightness = 3
+Lighting.Brightness = 2.4
 Lighting.Ambient = Color3.fromRGB(178, 205, 235)
 Lighting.OutdoorAmbient = Color3.fromRGB(168, 198, 232)
 Lighting.GlobalShadows = true
@@ -71,9 +71,11 @@ Lighting.EnvironmentSpecularScale = 0.8
 
 -- Post/sky dressing, rebuilt fresh each run so re-running this script
 -- never stacks duplicates: a thin bright Atmosphere for depth, a mild
--- SunRays for cheer, a strong Bloom so the Neon trims/lava/signs glow
--- like the top sheets, and a colour grade that pushes saturation so
--- the palette reads loud instead of washed-out pastel.
+-- SunRays for cheer, and a SOFT Bloom: Akmal's note from the top
+-- games' sheets (2026-11-20) — they glow neon too, but on deep
+-- surfaces with a gentle grade, so the colour reads rich and clear
+-- instead of blown-out. High bloom threshold (only true Neon pops),
+-- low intensity, barely-there saturation, no contrast push.
 for _, fxName in ipairs({ "MagmaAtmosphere", "MagmaSunRays", "MagmaBloom", "MagmaColorGrade" }) do
 	local old = Lighting:FindFirstChild(fxName)
 	if old then
@@ -96,14 +98,14 @@ sunRays.Spread = 0.8
 sunRays.Parent = Lighting
 local bloom = Instance.new("BloomEffect")
 bloom.Name = "MagmaBloom"
-bloom.Intensity = 0.75
-bloom.Size = 24
-bloom.Threshold = 0.75
+bloom.Intensity = 0.45
+bloom.Size = 20
+bloom.Threshold = 1.05
 bloom.Parent = Lighting
 local colorGrade = Instance.new("ColorCorrectionEffect")
 colorGrade.Name = "MagmaColorGrade"
-colorGrade.Saturation = 0.3
-colorGrade.Contrast = 0.08
+colorGrade.Saturation = 0.12
+colorGrade.Contrast = 0
 colorGrade.Brightness = 0
 colorGrade.Parent = Lighting
 
@@ -1999,19 +2001,20 @@ local function BuildVillagers()
 		Color3.fromRGB(150, 200, 255), Color3.fromRGB(80, 75, 95), Color3.fromRGB(255, 205, 160), "stand",
 		Color3.fromRGB(190, 120, 255))
 	makeNameTag(nia, "Nia")
-	-- Photo crowd on the open plaza ground SE of the fountain
-	-- (Akmal's photo spot): three stationary watchers in a loose
-	-- group facing the fountain/parade. The fountain rim itself
-	-- stays clear — that is where he stands for the shot.
+	-- Photo crowd on the open ground SOUTH of the fountain — the
+	-- spot Akmal actually stands on for his shots (he corrected the
+	-- placement twice: an earlier NE-of-fountain guess put them on
+	-- a wild pad across the island). A loose arc on the plaza path
+	-- between the fountain and the gantry, facing the fountain.
 	local fountainFace = Vector3.new(0, 0, 104)
-	local budi = makeFigure(world, CFrame.lookAt(Vector3.new(22, 0, 80), fountainFace),
+	local budi = makeFigure(world, CFrame.lookAt(Vector3.new(-5, 0, 115), fountainFace),
 		Color3.fromRGB(255, 150, 60), Color3.fromRGB(70, 65, 85), Color3.fromRGB(198, 150, 110), "stand", nil)
 	makeNameTag(budi, "Budi")
-	local tari = makeFigure(world, CFrame.lookAt(Vector3.new(25.5, 0, 76.5), fountainFace),
+	local tari = makeFigure(world, CFrame.lookAt(Vector3.new(4, 0, 118), fountainFace),
 		Color3.fromRGB(140, 230, 255), Color3.fromRGB(95, 80, 105), Color3.fromRGB(255, 205, 160), "stand",
 		Color3.fromRGB(255, 120, 170))
 	makeNameTag(tari, "Tari")
-	local jaya = makeFigure(world, CFrame.lookAt(Vector3.new(18.5, 0, 75), fountainFace),
+	local jaya = makeFigure(world, CFrame.lookAt(Vector3.new(11, 0, 113), fountainFace),
 		Color3.fromRGB(190, 255, 120), Color3.fromRGB(60, 70, 60), Color3.fromRGB(140, 100, 70), "stand",
 		Color3.fromRGB(70, 200, 120))
 	makeNameTag(jaya, "Jaya")
