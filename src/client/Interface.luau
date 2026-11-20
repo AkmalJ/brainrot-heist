@@ -274,7 +274,7 @@ local function buildFigure(record, entry)
 	viewport.BackgroundTransparency = 1
 	viewport.BorderSizePixel = 0
 	viewport.Position = UDim2.new(0, 4, 0, 2)
-	viewport.Size = UDim2.new(1, -8, 0, 64)
+	viewport.Size = UDim2.new(1, -8, 0, 88)
 	viewport.ZIndex = 43
 	viewport.Ambient = Color3.fromRGB(135, 128, 122)
 	viewport.LightColor = Color3.fromRGB(255, 244, 230)
@@ -937,7 +937,8 @@ indexScroll.ZIndex = 41
 indexScroll.Parent = indexBody
 
 local gridLayout = Instance.new("UIGridLayout")
-gridLayout.CellSize = UDim2.new(0, 108, 0, 140)
+gridLayout.CellSize = UDim2.new(0, 116, 0, 156)
+gridLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 gridLayout.CellPadding = UDim2.new(0, 8, 0, 8)
 gridLayout.SortOrder = Enum.SortOrder.LayoutOrder
 gridLayout.Parent = indexScroll
@@ -1007,17 +1008,17 @@ local function buildIndexCells()
 		big.Position = UDim2.new(0, 0, 0, 4)
 		big.ZIndex = 43
 		local name = makeLabel(cell, entry.name, 14, THEME.ink, Enum.Font.GothamBlack)
-		name.Size = UDim2.new(1, -6, 0, 30)
-		name.Position = UDim2.new(0, 3, 0, 70)
+		name.Size = UDim2.new(1, -6, 0, 28)
+		name.Position = UDim2.new(0, 3, 0, 92)
 		name.TextWrapped = true
 		name.ZIndex = 43
 		local rarity = makeLabel(cell, tostring(entry.rarity), 12, entry.color, Enum.Font.GothamBlack)
 		rarity.Size = UDim2.new(1, 0, 0, 16)
-		rarity.Position = UDim2.new(0, 0, 0, 102)
+		rarity.Position = UDim2.new(0, 0, 0, 122)
 		rarity.ZIndex = 43
 		local income = makeLabel(cell, fmtMoney(entry.income) .. "/s", 13, THEME.gold)
 		income.Size = UDim2.new(1, 0, 0, 16)
-		income.Position = UDim2.new(0, 0, 0, 120)
+		income.Position = UDim2.new(0, 0, 0, 139)
 		income.ZIndex = 43
 
 		cell.MouseButton1Click:Connect(function()

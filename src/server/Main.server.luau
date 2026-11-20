@@ -1904,6 +1904,14 @@ local function BuildVillagers()
 			skin = Color3.fromRGB(198, 150, 110), hat = Color3.fromRGB(255, 120, 80) },
 		{ name = "Maya", shirt = Color3.fromRGB(180, 110, 230), pants = Color3.fromRGB(60, 60, 85),
 			skin = Color3.fromRGB(140, 100, 70), hat = nil },
+		{ name = "Agus", shirt = Color3.fromRGB(255, 170, 40), pants = Color3.fromRGB(60, 60, 70),
+			skin = Color3.fromRGB(140, 100, 70), hat = Color3.fromRGB(90, 200, 255) },
+		{ name = "Dewi", shirt = Color3.fromRGB(255, 240, 245), pants = Color3.fromRGB(200, 80, 90),
+			skin = Color3.fromRGB(255, 205, 160), hat = nil },
+		{ name = "Eko", shirt = Color3.fromRGB(70, 90, 200), pants = Color3.fromRGB(50, 50, 60),
+			skin = Color3.fromRGB(198, 150, 110), hat = nil },
+		{ name = "Fitri", shirt = Color3.fromRGB(120, 255, 190), pants = Color3.fromRGB(85, 75, 100),
+			skin = Color3.fromRGB(255, 205, 160), hat = Color3.fromRGB(255, 210, 80) },
 	}
 	for i, f in ipairs(folk) do
 		-- Even phase spacing on the shared loop at one shared speed:
@@ -1959,6 +1967,32 @@ local function BuildVillagers()
 	local sinta = makeFigure(world, CFrame.lookAt(fB, fA),
 		Color3.fromRGB(255, 110, 90), Color3.fromRGB(90, 90, 110), Color3.fromRGB(255, 205, 160), "stand", nil)
 	makeNameTag(sinta, "Sinta")
+	-- Chatting pair at the SPICES stall (angle 55, same stall math
+	-- as Tono & Wati at SNACKS): the market's far end stays peopled.
+	local gang = math.rad(55)
+	local gcf = CFrame.lookAt(
+		Vector3.new(112 * math.cos(gang), 0, 112 * math.sin(gang)), Vector3.new(0, 0, 0))
+	local gA = (gcf * CFrame.new(-1.8, 0, -5.6)).Position
+	local gB = (gcf * CFrame.new(1.8, 0, -5.6)).Position
+	local yudi = makeFigure(world, CFrame.lookAt(gA, gB),
+		Color3.fromRGB(90, 230, 200), Color3.fromRGB(65, 75, 95), Color3.fromRGB(198, 150, 110), "stand",
+		Color3.fromRGB(240, 90, 80))
+	makeNameTag(yudi, "Yudi")
+	local ani = makeFigure(world, CFrame.lookAt(gB, gA),
+		Color3.fromRGB(255, 205, 90), Color3.fromRGB(75, 70, 100), Color3.fromRGB(255, 205, 160), "stand", nil)
+	makeNameTag(ani, "Ani")
+	-- Two pool-watchers at the Beach Pool's plaza-side rim, where
+	-- the plaza path arrives: they stand clear of the water disc
+	-- (centre (-62, 98), r 10) and face it, so the pool overlook
+	-- and the plot steps above it never photograph empty.
+	local poolFace = Vector3.new(-62, 0, 98)
+	local raka = makeFigure(world, CFrame.lookAt(Vector3.new(-50.5, 0, 105.5), poolFace),
+		Color3.fromRGB(240, 120, 100), Color3.fromRGB(60, 70, 90), Color3.fromRGB(140, 100, 70), "stand", nil)
+	makeNameTag(raka, "Raka")
+	local nia = makeFigure(world, CFrame.lookAt(Vector3.new(-52.5, 0, 103), poolFace),
+		Color3.fromRGB(150, 200, 255), Color3.fromRGB(80, 75, 95), Color3.fromRGB(255, 205, 160), "stand",
+		Color3.fromRGB(190, 120, 255))
+	makeNameTag(nia, "Nia")
 end
 
 -- PALMS: sixteen curved palms — the empty north/west/east shore
