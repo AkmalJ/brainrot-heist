@@ -2310,6 +2310,173 @@ local function BuildFinalDensity()
 end
 
 --====================================================================--
+-- OBSIDIAN FIELDS DRESSING: the plateau was the last bare slab on
+-- the island — a big dark table with a pool in the middle and a
+-- watchtower in the corner. This pass gives the zone its own
+-- signature: obsidian crystal clusters with Neon tips, pool-side
+-- dressing in the Beach Pool's language, a glowing rim line on
+-- the cliff faces the island sees, a small ruin on the north
+-- side, three inhabitants, and pennant strings tying the
+-- watchtower into the plateau. Decoration only — the pool, the
+-- stair corridor (x -124..-106) and every walking line on the
+-- plateau stay exactly as they were.
+--====================================================================--
+
+local function BuildFieldsDressing()
+	local topY = 8 -- the plateau's walking surface
+	local zonePurple = Color3.fromRGB(170, 120, 255)
+	local zoneCyan = Color3.fromRGB(64, 225, 255)
+
+	-- 1. Obsidian crystal clusters: tilted Glass spikes in the
+	-- zone's existing shard language, grouped at the edges and
+	-- mid areas; the two tallest in each cluster wear a Neon tip.
+	-- Centres were checked against the shard/gem field, the pool
+	-- deck (r 13.6 at (-112,-112) — every centre is 19+ clear),
+	-- the stair corridor and the watchtower footprint.
+	local clusters = {
+		{ -163, -163 }, { -166, -122 }, { -80, -166 },
+		{ -61, -131 }, { -152, -66 }, { -86, -122 },
+	}
+	local spikePlan = {
+		{ 0, 0, 5.5, 1.7, 0.10, 0.06 },
+		{ 2.2, 0.8, 3.8, 1.4, -0.08, 0.12 },
+		{ -1.9, 1.1, 3.0, 1.3, 0.14, -0.05 },
+		{ 0.7, -2.1, 2.3, 1.1, -0.05, -0.10 },
+	}
+	for ci, c in ipairs(clusters) do
+		local glass = (ci % 2 == 0) and Color3.fromRGB(44, 28, 60) or Color3.fromRGB(26, 22, 36)
+		local tipColor = (ci % 2 == 0) and zoneCyan or zonePurple
+		for si, s in ipairs(spikePlan) do
+			local h = s[3]
+			local cf = CFrame.new(c[1] + s[1], topY + h / 2 - 0.5, c[2] + s[2])
+				* CFrame.Angles(s[5], ci * 1.3 + si, s[6])
+			makePart(world, "CrystalSpike", Vector3.new(s[4], h, s[4]), cf, glass, Enum.Material.Glass)
+			if si <= 2 then
+				local tip = nc(makePart(world, "CrystalTip", Vector3.new(0.5, 0.5, 0.5),
+					cf * CFrame.new(0, h / 2 + 0.15, 0), tipColor, Enum.Material.Neon))
+				tip.Shape = Enum.PartType.Ball
+			end
+		end
+	end
+
+	-- 2. Pool-side dressing, mirroring the Beach Pool's language
+	-- (pole + shade umbrellas; flat towels become loungers), set
+	-- on the deck ring and just off it — never in the water and
+	-- never on the south approach from the stairs.
+	local poolC = Vector3.new(-112, topY, -112)
+	for _, um in ipairs({
+		{ x = -121.5, z = -120.5, c = Color3.fromRGB(190, 120, 255) },
+		{ x = -99.5, z = -119, c = Color3.fromRGB(64, 224, 255) },
+	}) do
+		local cf = CFrame.new(um.x, topY, um.z)
+		makePart(world, "UmbrellaPole", Vector3.new(0.25, 4.6, 0.25), cf * CFrame.new(0, 2.3, 0),
+			Color3.fromRGB(240, 240, 235), Enum.Material.Metal)
+		local shade = makeDisc(world, "UmbrellaShade", 3.6, 0.5, cf * CFrame.new(0, 4.7, 0), um.c,
+			Enum.Material.SmoothPlastic)
+		shade.CanCollide = false
+	end
+	for _, lg in ipairs({
+		{ x = -124.5, z = -114.5, c = Color3.fromRGB(250, 244, 228) },
+		{ x = -118, z = -124.5, c = Color3.fromRGB(190, 120, 255) },
+		{ x = -100.5, z = -108, c = Color3.fromRGB(64, 224, 255) },
+	}) do
+		local cf = CFrame.lookAt(Vector3.new(lg.x, topY, lg.z), poolC)
+		local slab = makePart(world, "Lounger", Vector3.new(1.9, 0.35, 3.6), cf * CFrame.new(0, 0.28, 0),
+			lg.c, Enum.Material.SmoothPlastic)
+		slab.CanCollide = false
+		local back = makePart(world, "LoungerBack", Vector3.new(1.9, 1.3, 0.25),
+			cf * CFrame.new(0, 0.75, 1.75) * CFrame.Angles(math.rad(-32), 0, 0), lg.c,
+			Enum.Material.SmoothPlastic)
+		back.CanCollide = false
+	end
+	-- The pool's own totem on the deck's east rim, facing out over
+	-- the plateau; its posts sink into the slab like every totem.
+	makeSignPost(world, Vector3.new(-96.5, 11.3, -112), Vector3.new(-40, 0, -112), 11, 3.4,
+		"FIELDS POOL", "Luck x1.5 - the obsidian waters run rich", zonePurple)
+
+	-- 3. Plateau rim neon: dashed strips glued to the south and
+	-- east cliff faces just under the top edge (y 7.3, above the
+	-- MesaBands), so the plateau's outline glows back at the
+	-- island. The south run skips the stair corridor, as the
+	-- bands and fence already do.
+	local southX = { -170, -162, -154, -146, -138, -130, -98, -90, -82, -74, -66, -60 }
+	for i, sx in ipairs(southX) do
+		local strip = makePart(world, "RimGlow", Vector3.new(4, 0.35, 0.18),
+			CFrame.new(sx, 7.3, -54.8), (i % 2 == 0) and zoneCyan or zonePurple, Enum.Material.Neon)
+		strip.CanCollide = false
+	end
+	for i = 1, 14 do
+		local ez = -170 + (i - 1) * 8
+		local strip = makePart(world, "RimGlow", Vector3.new(0.18, 0.35, 4),
+			CFrame.new(-54.8, 7.3, ez), (i % 2 == 0) and zonePurple or zoneCyan, Enum.Material.Neon)
+		strip.CanCollide = false
+	end
+
+	-- 4. A small ruin on the north side: three standing pillars,
+	-- the tallest still wearing a Neon rune strip, and one fallen
+	-- brother in front — the zone's photo landmark.
+	local ruinStone = Color3.fromRGB(44, 38, 52)
+	makePart(world, "RuinPillar", Vector3.new(2.6, 7, 2.6), CFrame.new(-147, topY + 3.5, -163),
+		ruinStone, Enum.Material.Slate)
+	makePart(world, "RuinPillar", Vector3.new(2.8, 9.5, 2.8), CFrame.new(-138.5, topY + 4.75, -165.5),
+		ruinStone, Enum.Material.Slate)
+	makePart(world, "RuinPillar", Vector3.new(2.6, 5, 2.6), CFrame.new(-130, topY + 2.5, -162),
+		ruinStone, Enum.Material.Slate)
+	local rune = makePart(world, "RuinRune", Vector3.new(0.55, 4.2, 0.18),
+		CFrame.new(-138.5, topY + 5.6, -164.05), zoneCyan, Enum.Material.Neon)
+	rune.CanCollide = false
+	makePart(world, "RuinFallen", Vector3.new(2.4, 6.5, 2.4),
+		CFrame.new(-134, topY + 1.2, -156.5) * CFrame.Angles(math.rad(84), 0.4, 0), ruinStone, Enum.Material.Slate)
+
+	-- 5. Inhabitants: Udin fishes the lava pool from its SE rim
+	-- (rod, line and bobber over the water), and Putri and Bagus
+	-- chat beside the south-west crystal cluster. Statics on
+	-- purpose — the island mover stays untouched.
+	local udinCf = CFrame.lookAt(Vector3.new(-100, topY, -103), Vector3.new(-112, topY, -112))
+	local udin = makeFigure(world, udinCf, Color3.fromRGB(255, 170, 60), Color3.fromRGB(70, 80, 110),
+		Color3.fromRGB(198, 150, 110), "stand", Color3.fromRGB(64, 156, 255))
+	makeNameTag(udin, "Udin")
+	local fwd, rgt = udinCf.LookVector, udinCf.RightVector
+	local hand = udinCf.Position + rgt * 1.0 + fwd * 0.3 + Vector3.new(0, 2.7, 0)
+	local tipP = hand + fwd * 5.2 + Vector3.new(0, -1.4, 0)
+	local rod = makePart(world, "FishingRod", Vector3.new(0.12, 0.12, (tipP - hand).Magnitude),
+		CFrame.lookAt((hand + tipP) / 2, tipP), Color3.fromRGB(110, 80, 50), Enum.Material.Wood)
+	rod.CanCollide = false
+	local lineLen = tipP.Y - 8.75
+	local fishLine = makePart(world, "FishingLine", Vector3.new(0.04, lineLen, 0.04),
+		CFrame.new(tipP.X, 8.75 + lineLen / 2, tipP.Z), Color3.fromRGB(240, 240, 235),
+		Enum.Material.SmoothPlastic)
+	fishLine.CanCollide = false
+	local bobber = makePart(world, "Bobber", Vector3.new(0.34, 0.34, 0.34), CFrame.new(tipP.X, 8.8, tipP.Z),
+		Color3.fromRGB(255, 80, 70), Enum.Material.Neon)
+	bobber.Shape = Enum.PartType.Ball
+	bobber.CanCollide = false
+	local putri = makeFigure(world, CFrame.lookAt(Vector3.new(-147.5, topY, -60.5), Vector3.new(-144.8, topY, -63.2)),
+		Color3.fromRGB(255, 110, 160), Color3.fromRGB(80, 70, 95), Color3.fromRGB(255, 205, 160), "stand", nil)
+	makeNameTag(putri, "Putri")
+	local bagus = makeFigure(world, CFrame.lookAt(Vector3.new(-144.8, topY, -63.2), Vector3.new(-147.5, topY, -60.5)),
+		Color3.fromRGB(64, 200, 190), Color3.fromRGB(60, 70, 90), Color3.fromRGB(140, 100, 70), "stand",
+		Color3.fromRGB(255, 205, 60))
+	makeNameTag(bagus, "Bagus")
+
+	-- 6. Pennant strings: a pole by the stair arrival and one on
+	-- the east side, both strung up to the watchtower roof — the
+	-- plateau joins the island's pennant system.
+	local function fieldsPole(x, z)
+		nc(makePart(world, "PennantPole", Vector3.new(0.35, 9.5, 0.35), CFrame.new(x, topY + 4.75, z),
+			Color3.fromRGB(110, 80, 54), Enum.Material.Wood))
+		local tip = nc(makePart(world, "PoleTip", Vector3.new(0.5, 0.5, 0.5), CFrame.new(x, topY + 9.75, z),
+			zonePurple, Enum.Material.Neon))
+		tip.Shape = Enum.PartType.Ball
+		return Vector3.new(x, topY + 9.5, z)
+	end
+	local poleA = fieldsPole(-130, -62)
+	local poleB = fieldsPole(-62, -100)
+	makePennants(world, poleA, Vector3.new(-88, topY + 17.5, -64))
+	makePennants(world, Vector3.new(-80, topY + 17.5, -64), poleB)
+end
+
+--====================================================================--
 -- Build the island
 --====================================================================--
 
@@ -2332,6 +2499,7 @@ BuildPalms()
 BuildSkyLayer()
 BuildRimAccess()
 BuildFinalDensity()
+BuildFieldsDressing()
 
 --====================================================================--
 -- Player lifecycle: claim a plot, create the State entry, land the
