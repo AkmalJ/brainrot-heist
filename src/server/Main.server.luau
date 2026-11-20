@@ -445,7 +445,7 @@ local function BuildIslandGround()
 		{ 62, -96, 30, Color3.fromRGB(116, 186, 104) },
 		{ 106, 72, 26, Color3.fromRGB(240, 170, 128) },
 		{ -122, 58, 28, Color3.fromRGB(126, 192, 110) },
-	}) do
+		}) do
 		local p = makeDisc(world, "GroundPatch", patch[3], 0.1, CFrame.new(patch[1], 0.06, patch[2]),
 			patch[4], Enum.Material.SmoothPlastic)
 		p.CanCollide = false
@@ -468,7 +468,7 @@ local function BuildIslandGround()
 	-- Sandy beach patches around the south shore.
 	for _, patch in ipairs({
 		{ 0, 168, 34 }, { -70, 140, 26 }, { 75, 138, 28 }, { -130, 95, 22 }, { 132, 92, 24 },
-	}) do
+		}) do
 		makeDisc(world, "Beach", patch[3], 0.5, CFrame.new(patch[1], 0.05, patch[2]),
 			Color3.fromRGB(238, 202, 140), Enum.Material.Sand)
 	end
@@ -623,7 +623,7 @@ local function BuildVolcano()
 	for _, sh in ipairs({
 		{ x = 37, z = 24, tiers = { { 18, 0, 13 }, { 12.5, 13, 23 }, { 7.5, 23, 31 } } },
 		{ x = -33, z = 26, tiers = { { 15, 0, 10 }, { 10, 10, 18 }, { 6, 18, 24 } } },
-	}) do
+		}) do
 		for i, lv in ipairs(sh.tiers) do
 			local color = (i % 2 == 0) and Color3.fromRGB(122, 98, 90) or Color3.fromRGB(146, 116, 102)
 			makeDisc(volcano, "ShoulderCone", lv[1], lv[3] - lv[2],
@@ -725,7 +725,7 @@ local function BuildZones()
 		{ Vector3.new(51, 1.3, 0.5), CFrame.new(-80.5, 1.8, -54.7) },
 		{ Vector3.new(0.5, 1.3, 120.6), CFrame.new(-54.7, 5.5, -115) },
 		{ Vector3.new(0.5, 1.3, 120.6), CFrame.new(-54.7, 1.8, -115) },
-	}) do
+		}) do
 		makePart(world, "MesaBand", band[1], band[2], Color3.fromRGB(172, 158, 150), Enum.Material.Slate)
 	end
 	for _, cx in ipairs({ -174, -56 }) do
@@ -969,7 +969,7 @@ local function BuildSpawnPlaza()
 	for _, stall in ipairs({
 		{ x = -27, stripe = Color3.fromRGB(255, 92, 84) },
 		{ x = 27, stripe = Color3.fromRGB(32, 201, 181) },
-	}) do
+		}) do
 		local cf = CFrame.lookAt(Vector3.new(stall.x, 0, 158), Vector3.new(0, 0, 148))
 		for _, px in ipairs({ -3.4, 3.4 }) do
 			makePart(world, "StallPost", Vector3.new(0.4, 5.4, 0.4),
@@ -1250,7 +1250,7 @@ local function BuildDressing()
 	-- painted wood, parked where screenshots used to show bare disc.
 	for _, cl in ipairs({
 		{ x = -38, z = 118 }, { x = 96, z = 44 }, { x = -96, z = -30 }, { x = 40, z = -108 },
-	}) do
+		}) do
 		local cf = CFrame.new(cl.x, 0, cl.z)
 		makePart(world, "Crate", Vector3.new(2.4, 2.4, 2.4), cf * CFrame.new(0, 1.2, 0),
 			Color3.fromRGB(32, 178, 190), Enum.Material.Wood)
@@ -1271,7 +1271,7 @@ local function BuildDressing()
 		{ x = -52, z = 158, c = Color3.fromRGB(255, 92, 84) },
 		{ x = 58, z = 152, c = Color3.fromRGB(64, 156, 255) },
 		{ x = -8, z = 178, c = Color3.fromRGB(255, 205, 60) },
-	}) do
+		}) do
 		local cf = CFrame.new(um.x, 0, um.z)
 		makePart(world, "UmbrellaPole", Vector3.new(0.25, 4.6, 0.25), cf * CFrame.new(0, 2.3, 0),
 			Color3.fromRGB(240, 240, 235), Enum.Material.Metal)
@@ -1604,7 +1604,7 @@ local function BuildFountain()
 	nc(makeDisc(f, "FountainPillar", 0.85, 3.4, CFrame.new(0, 1.7, 104), stoneDark, Enum.Material.Slate))
 	for _, lava in ipairs({
 		{ "FountainLavaBase", 6.4, 1.06 }, { "FountainLavaMid", 4.0, 2.26 }, { "FountainLavaTop", 2.0, 3.36 },
-	}) do
+		}) do
 		local d = nc(makeDisc(f, lava[1], lava[2], 0.18, CFrame.new(0, lava[3], 104),
 			Color3.fromRGB(255, 110, 40), Enum.Material.Neon))
 		table.insert(animatedLava, d)
@@ -1677,7 +1677,7 @@ local function BuildGroundDressing()
 		{ -160, -25, 20, Color3.fromRGB(110, 190, 90) },
 		{ -152, 80, 18, Color3.fromRGB(245, 150, 130) },
 		{ 95, -105, 20, Color3.fromRGB(110, 190, 90) },
-	}) do
+		}) do
 		nc(makeDisc(world, "GroundPatch", p[3], 0.14, CFrame.new(p[1], 0.07, p[2]), p[4], Enum.Material.SmoothPlastic))
 	end
 end
@@ -2191,7 +2191,7 @@ local function BuildFinalDensity()
 		-- west flats and shore
 		{ -70, -8, 11, patchTeal }, { -66, 64, 10, patchCoral },
 		{ -112, 108, 11, patchTeal }, { -172, 42, 12, patchSand },
-	}) do
+		}) do
 		nc(makeDisc(world, "GroundPatch", p[3], 0.16, CFrame.new(p[1], 0.08, p[2]),
 			p[4], Enum.Material.SmoothPlastic))
 	end
@@ -2270,7 +2270,7 @@ local function BuildFinalDensity()
 			local fyaw = yaw + k * (math.pi * 2 / 3) + 0.5
 			nc(makePart(world, "SaplingFrond", Vector3.new(0.3, 0.15, 2.6),
 				CFrame.new(top + Vector3.new(math.sin(fyaw) * 0.9, 0.15, math.cos(fyaw) * 0.9))
-				* CFrame.Angles(0, fyaw, 0) * CFrame.Angles(math.rad(28), 0, 0),
+					* CFrame.Angles(0, fyaw, 0) * CFrame.Angles(math.rad(28), 0, 0),
 				Color3.fromRGB(74, 168, 84), Enum.Material.SmoothPlastic))
 		end
 	end
@@ -2367,7 +2367,7 @@ local function BuildFieldsDressing()
 	for _, um in ipairs({
 		{ x = -121.5, z = -120.5, c = Color3.fromRGB(190, 120, 255) },
 		{ x = -99.5, z = -119, c = Color3.fromRGB(64, 224, 255) },
-	}) do
+		}) do
 		local cf = CFrame.new(um.x, topY, um.z)
 		makePart(world, "UmbrellaPole", Vector3.new(0.25, 4.6, 0.25), cf * CFrame.new(0, 2.3, 0),
 			Color3.fromRGB(240, 240, 235), Enum.Material.Metal)
@@ -2379,7 +2379,7 @@ local function BuildFieldsDressing()
 		{ x = -124.5, z = -114.5, c = Color3.fromRGB(250, 244, 228) },
 		{ x = -118, z = -124.5, c = Color3.fromRGB(190, 120, 255) },
 		{ x = -100.5, z = -108, c = Color3.fromRGB(64, 224, 255) },
-	}) do
+		}) do
 		local cf = CFrame.lookAt(Vector3.new(lg.x, topY, lg.z), poolC)
 		local slab = makePart(world, "Lounger", Vector3.new(1.9, 0.35, 3.6), cf * CFrame.new(0, 0.28, 0),
 			lg.c, Enum.Material.SmoothPlastic)
