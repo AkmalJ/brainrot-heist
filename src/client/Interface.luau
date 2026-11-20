@@ -305,7 +305,7 @@ local function buildFigure(record, entry)
 	end
 
 	local maxDim = math.max(size.X, size.Y, size.Z)
-	local dist = (maxDim / 2) / math.tan(math.rad(17.5)) * 1.15
+	local dist = (maxDim / 2) / math.tan(math.rad(17.5)) * 1.22
 	local cam = Instance.new("Camera")
 	cam.FieldOfView = 35
 	cam.CFrame = CFrame.lookAt(Vector3.new(0.55, 0.35, -1).Unit * dist, Vector3.new(0, 0, 0))
