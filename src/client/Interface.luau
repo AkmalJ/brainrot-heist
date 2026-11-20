@@ -424,6 +424,7 @@ local state = {
 	questProgress = 0,
 	questGoal = 1,
 	ownedCounts = {},
+	discovered = {},
 	carriedName = "",
 	zonesUnlocked = 1,
 	lastChaseAt = -math.huge, -- tick() of the most recent "chase" toast
@@ -472,10 +473,26 @@ local function ownedOf(entry)
 	return tonumber(n) or 0
 end
 
+-- The Index is a Pokedex: once a brainrot has EVER been caught it
+-- stays discovered, even if a goblin later steals the placed copy.
+-- (The server's milestone system already counted it this way; the
+-- panel used to count current holdings and visibly un-filled.)
+local function discoveredOf(entry)
+	local found = state.discovered
+	if type(found) ~= "table" then
+		return false
+	end
+	local v = found[entry.id] or found[entry.name]
+	if v == nil and entry.raw then
+		v = found[entry.raw.id or entry.raw.Id or entry.raw.name or entry.raw.Name]
+	end
+	return v == true or (tonumber(v) or 0) > 0
+end
+
 local function foundCount()
 	local n = 0
 	for _, entry in ipairs(loadCast()) do
-		if ownedOf(entry) > 0 then
+		if discoveredOf(entry) then
 			n += 1
 		end
 	end
@@ -988,9 +1005,14 @@ local selectedEntry = nil
 local function selectEntry(entry)
 	selectedEntry = entry
 	local owned = ownedOf(entry)
-	if owned > 0 then
-		detailTitle.Text = string.format("%s  ·  %s  ·  %s/s  ·  owned x%d",
-			entry.name, tostring(entry.rarity), fmtMoney(entry.income), owned)
+	if discoveredOf(entry) then
+		if owned > 0 then
+			detailTitle.Text = string.format("%s  ·  %s  ·  %s/s  ·  owned x%d",
+				entry.name, tostring(entry.rarity), fmtMoney(entry.income), owned)
+		else
+			detailTitle.Text = string.format("%s  ·  %s  ·  %s/s  ·  caught before — not in your base now",
+				entry.name, tostring(entry.rarity), fmtMoney(entry.income))
+		end
 		detailTitle.TextColor3 = entry.color
 	else
 		detailTitle.Text = string.format("???  ·  %s  ·  %s/s  ·  not caught yet",
@@ -1050,7 +1072,8 @@ local function refreshIndex()
 	buildIndexCells()
 	for _, cell in pairs(indexCells) do
 		local owned = ownedOf(cell.entry)
-		if owned > 0 then
+		local found = discoveredOf(cell.entry)
+		if found then
 			cell.frame.BackgroundColor3 = THEME.panelLight
 			cell.big.Text = "🧠"
 			cell.name.Text = cell.entry.name .. (owned > 1 and (" x" .. owned) or "")
@@ -1063,7 +1086,7 @@ local function refreshIndex()
 		end
 		if cell.parts then
 			for _, rec in ipairs(cell.parts) do
-				if owned > 0 then
+				if found then
 					rec.part.Color = rec.color
 					rec.part.Material = rec.material
 				else
@@ -1499,6 +1522,9 @@ function Interface.init(remotes)
 				if ok and type(res) == "table" then
 					if type(res.ownedCounts) == "table" then
 						state.ownedCounts = res.ownedCounts
+					end
+					if type(res.discovered) == "table" then
+						state.discovered = res.discovered
 					end
 					refreshIndex()
 					refreshButtons()

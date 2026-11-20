@@ -127,6 +127,7 @@ function Economy.PushHud(player)
 		rekindleCost = nextStep and nextStep.cost or nil,
 		nextMultiplier = Upgrades.RekindleMult(st.rebirth + 1),
 		ownedCounts = st.ownedCounts,
+		discovered = st.discovered,
 		carriedName = st.carried and Brainrots.DisplayName(
 			Brainrots.ByName[st.carried.defName],
 			st.carried.mutationName and Brainrots.MutationByName[st.carried.mutationName]) or nil,
