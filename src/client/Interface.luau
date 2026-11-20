@@ -936,6 +936,12 @@ indexScroll.Position = UDim2.new(0, 0, 0, 0)
 indexScroll.Size = UDim2.new(1, 0, 1, -118)
 indexScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
 indexScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+-- breathing room inside the grid: without it the first row's top
+-- border sits flush on the scroll edge and renders cut off
+local indexPad = Instance.new("UIPadding")
+indexPad.PaddingTop = UDim.new(0, 8)
+indexPad.PaddingBottom = UDim.new(0, 8)
+indexPad.Parent = indexScroll
 indexScroll.ScrollBarThickness = 8
 indexScroll.ZIndex = 41
 indexScroll.Parent = indexBody
@@ -963,13 +969,13 @@ indexDetail.Parent = indexBody
 
 local detailTitle = makeLabel(indexDetail, "Tap a brainrot to inspect it", 21, THEME.gold, Enum.Font.GothamBlack)
 detailTitle.ZIndex = 42
-detailTitle.Position = UDim2.new(0, 10, 0, 4)
+detailTitle.Position = UDim2.new(0, 10, 0, 14)
 detailTitle.Size = UDim2.new(1, -20, 0, 28)
 detailTitle.TextXAlignment = Enum.TextXAlignment.Left
 
 local detailJoke = makeLabel(indexDetail, "", 17, THEME.inkDim)
 detailJoke.ZIndex = 42
-detailJoke.Position = UDim2.new(0, 10, 0, 34)
+detailJoke.Position = UDim2.new(0, 10, 0, 44)
 detailJoke.Size = UDim2.new(1, -20, 0, 42)
 detailJoke.TextXAlignment = Enum.TextXAlignment.Left
 detailJoke.TextWrapped = true
