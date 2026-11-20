@@ -2001,20 +2001,20 @@ local function BuildVillagers()
 		Color3.fromRGB(150, 200, 255), Color3.fromRGB(80, 75, 95), Color3.fromRGB(255, 205, 160), "stand",
 		Color3.fromRGB(190, 120, 255))
 	makeNameTag(nia, "Nia")
-	-- Photo crowd on the open ground SOUTH of the fountain — the
-	-- spot Akmal actually stands on for his shots (he corrected the
-	-- placement twice: an earlier NE-of-fountain guess put them on
-	-- a wild pad across the island). A loose arc on the plaza path
-	-- between the fountain and the gantry, facing the fountain.
+	-- Photo crowd INSIDE the circle Akmal drew himself on a
+	-- top-down screenshot (2026-11-20 13:54): the open stone ground
+	-- EAST of the fountain around (31, 93), by the beige slab —
+	-- triangulated from his circle against the fountain and the
+	-- trio's previous position. Do not move without his word.
 	local fountainFace = Vector3.new(0, 0, 104)
-	local budi = makeFigure(world, CFrame.lookAt(Vector3.new(-5, 0, 115), fountainFace),
+	local budi = makeFigure(world, CFrame.lookAt(Vector3.new(27, 0, 96), fountainFace),
 		Color3.fromRGB(255, 150, 60), Color3.fromRGB(70, 65, 85), Color3.fromRGB(198, 150, 110), "stand", nil)
 	makeNameTag(budi, "Budi")
-	local tari = makeFigure(world, CFrame.lookAt(Vector3.new(4, 0, 118), fountainFace),
+	local tari = makeFigure(world, CFrame.lookAt(Vector3.new(35, 0, 97), fountainFace),
 		Color3.fromRGB(140, 230, 255), Color3.fromRGB(95, 80, 105), Color3.fromRGB(255, 205, 160), "stand",
 		Color3.fromRGB(255, 120, 170))
 	makeNameTag(tari, "Tari")
-	local jaya = makeFigure(world, CFrame.lookAt(Vector3.new(11, 0, 113), fountainFace),
+	local jaya = makeFigure(world, CFrame.lookAt(Vector3.new(31, 0, 89.5), fountainFace),
 		Color3.fromRGB(190, 255, 120), Color3.fromRGB(60, 70, 60), Color3.fromRGB(140, 100, 70), "stand",
 		Color3.fromRGB(70, 200, 120))
 	makeNameTag(jaya, "Jaya")
