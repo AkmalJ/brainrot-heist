@@ -1004,9 +1004,14 @@ local PLOT_TRIM_COLORS = {
 }
 
 local function BuildPlayerBases()
-	-- Eight raised plots fanning across the south shore, high enough
+	-- Seven raised plots fanning across the south shore, high enough
 	-- (top Y = 6) to stay dry when the eruption flood rises to 3.4.
-	for i = 1, 8 do
+	-- PLOT 8 RETIRED (user order, 2026-11-20): the loop stops at 7,
+	-- so the easternmost plot (theta 77, beside the FRUIT stall) is
+	-- never built and never enters Game.Plots — ClaimPlot can never
+	-- assign it. The MAGMA SHOWCASE podium stands on its footprint
+	-- instead (see Showcase.server.luau). Plots 1-7 are unchanged.
+	for i = 1, 7 do
 		local theta = math.rad(-77 + (i - 1) * 22)
 		local px, pz = 148 * math.sin(theta), 148 * math.cos(theta)
 		local topCf = CFrame.lookAt(Vector3.new(px, 6, pz), Vector3.new(0, 6, 0))
@@ -1516,20 +1521,45 @@ local function makePennants(parent, a, b)
 	end
 end
 
--- MARKET ROW: seven chunky stalls on the south-east apron between
--- the parade ring and the booths, each with its own vendor, striped
--- canopy, counter goods and hanging sign — plus the MAGMA MARKET
--- gantry over the entrance path.
+-- MARKET QUARTER: seven BIG stalls gathered in three rows
+-- (3 + 2 + 2) on the north-east shore, far to the left of the
+-- Plot 8 showcase podium as seen from its photo medallion.
+-- The whole quarter was rotated 20.5 degrees further along
+-- the shore (2026-11-20) so a podium-centred photo frame
+-- holds NO market at all: verified by pinhole projection
+-- from the medallion (FOV 70, 1920x1080) — the nearest
+-- element, the paving's edge, sits 54.4 degrees off the view
+-- axis vs the 51.2 degree half-frame, and the nearest booth
+-- clears it by 5.6 degrees. Each stall is a full booth now:
+-- tall posts, a wide two-tier striped canopy, back shelf,
+-- long counter, gold-trimmed hanging sign — dressed in the
+-- podium's language of deep surfaces, gold trim and neon
+-- accents, standing on dark paving with red-carpet row
+-- strips. The MAGMA MARKET gantry (gold trim, bulbs) fronts
+-- the quarter from its island side. (The row used to arc
+-- along the parade apron at r112, then sat beside the
+-- podium; Akmal ordered it out of the showcase photo and
+-- the booths made big and busy, 2026-11-20.) Spots are
+-- world x/z on a 17-stud within-row pitch, 14.5 between
+-- rows; canopy edges clear neighbours by 2+ studs within a
+-- row and 4+ between rows; the farthest booth corner stays
+-- at r 191 of the r 200 island.
 local function BuildMarketRow()
 	local stalls = {
-		{ 5, "FRUIT", Color3.fromRGB(255, 110, 80) },
-		{ 15, "GEMS", Color3.fromRGB(110, 220, 255) },
-		{ 25, "POTIONS", Color3.fromRGB(190, 120, 255) },
-		{ 35, "SNACKS", Color3.fromRGB(255, 190, 70) },
-		{ 45, "SHELLS", Color3.fromRGB(120, 230, 200) },
-		{ 55, "SPICES", Color3.fromRGB(255, 140, 60) },
-		{ 65, "TOYS", Color3.fromRGB(250, 130, 190) },
+		{ "FRUIT", Color3.fromRGB(255, 110, 80) },
+		{ "GEMS", Color3.fromRGB(110, 220, 255) },
+		{ "POTIONS", Color3.fromRGB(190, 120, 255) },
+		{ "SNACKS", Color3.fromRGB(255, 190, 70) },
+		{ "SHELLS", Color3.fromRGB(120, 230, 200) },
+		{ "SPICES", Color3.fromRGB(255, 140, 60) },
+		{ "TOYS", Color3.fromRGB(250, 130, 190) },
 	}
+	local stallSpots = {
+		{ 140.1, -54.7 }, { 137.8, -71.6 }, { 135.6, -88.5 },
+		{ 153.3, -65.1 }, { 151.1, -81.9 },
+		{ 167.7, -67.0 }, { 165.5, -83.8 },
+	}
+	local GOLD = Color3.fromRGB(255, 205, 50)
 	local shirts = {
 		Color3.fromRGB(240, 90, 80), Color3.fromRGB(80, 160, 240), Color3.fromRGB(120, 210, 110),
 		Color3.fromRGB(250, 190, 60), Color3.fromRGB(180, 110, 230), Color3.fromRGB(90, 210, 200),
@@ -1538,59 +1568,211 @@ local function BuildMarketRow()
 	local skins = { Color3.fromRGB(255, 205, 160), Color3.fromRGB(198, 150, 110), Color3.fromRGB(140, 100, 70) }
 	local goodsColors = { Color3.fromRGB(255, 90, 90), Color3.fromRGB(120, 255, 140), Color3.fromRGB(255, 210, 80) }
 	for i, s in ipairs(stalls) do
-		local ang = math.rad(s[1])
-		local x, z = 112 * math.cos(ang), 112 * math.sin(ang)
+		local spot = stallSpots[i]
+		local x, z = spot[1], spot[2]
 		local stall = Instance.new("Folder")
 		stall.Name = "MarketStall" .. i
 		stall.Parent = world
 		local cf = CFrame.lookAt(Vector3.new(x, 0, z), Vector3.new(0, 0, 0))
-		local wood = Color3.fromRGB(128, 92, 62)
-		for _, px in ipairs({ -3.2, 3.2 }) do
-			for _, pz in ipairs({ -2.2, 2.2 }) do
-				nc(makePart(stall, "StallPost", Vector3.new(0.45, 4.4, 0.45), cf * CFrame.new(px, 2.2, pz),
-					wood, Enum.Material.Wood))
-			end
+		local wood = Color3.fromRGB(74, 54, 40)
+		local deepWood = Color3.fromRGB(52, 40, 32)
+		-- Four posts: the front pair taller, so the canopy
+		-- slopes down toward the back like a real awning.
+		for _, p in ipairs({
+			{ -5.2, -3.2, 7.5 }, { 5.2, -3.2, 7.5 },
+			{ -5.2, 3.2, 6.4 }, { 5.2, 3.2, 6.4 },
+		}) do
+			nc(makePart(stall, "StallPost", Vector3.new(0.6, p[3], 0.6), cf * CFrame.new(p[1], p[3] / 2, p[2]),
+				wood, Enum.Material.Wood))
+			nc(makePart(stall, "PostCollar", Vector3.new(0.9, 0.4, 0.9), cf * CFrame.new(p[1], p[3] - 0.5, p[2]),
+				GOLD, Enum.Material.Neon))
 		end
-		for j = 0, 4 do
-			local col = (j % 2 == 0) and s[3] or Color3.fromRGB(245, 240, 230)
-			nc(makePart(stall, "StallCanopy", Vector3.new(2.0, 0.22, 5.8),
-				cf * CFrame.new(-3.8 + j * 1.9, 4.85, 0) * CFrame.Angles(math.rad(9), 0, 0),
+		-- The wide striped canopy, gold-banded at the front.
+		for j = 0, 6 do
+			local col = (j % 2 == 0) and s[2] or Color3.fromRGB(245, 240, 230)
+			nc(makePart(stall, "StallCanopy", Vector3.new(2.15, 0.22, 10.4),
+				cf * CFrame.new(-6.45 + j * 2.15, 7.0, 0) * CFrame.Angles(math.rad(10), 0, 0),
 				col, Enum.Material.SmoothPlastic))
 		end
-		nc(makePart(stall, "StallBack", Vector3.new(9.2, 3.4, 0.3), cf * CFrame.new(0, 1.7, 2.75),
-			s[3]:Lerp(Color3.fromRGB(0, 0, 0), 0.35), Enum.Material.SmoothPlastic))
-		nc(makePart(stall, "StallCounter", Vector3.new(8.2, 1.5, 1.6), cf * CFrame.new(0, 0.95, -1.6),
-			Color3.fromRGB(170, 128, 88), Enum.Material.Wood))
-		nc(makePart(stall, "CounterTop", Vector3.new(8.6, 0.25, 2.0), cf * CFrame.new(0, 1.82, -1.6),
-			Color3.fromRGB(196, 158, 112), Enum.Material.Wood))
-		for g, gx in ipairs({ -2.4, 0, 2.4 }) do
-			local good = nc(makePart(stall, "Goods", Vector3.new(0.72, 0.72, 0.72),
-				cf * CFrame.new(gx, 2.3, -1.6), goodsColors[g], Enum.Material.SmoothPlastic))
-			if g == 2 then
+		nc(makePart(stall, "CanopyTrim", Vector3.new(15.4, 0.35, 0.35),
+			cf * CFrame.new(0, 6.02, -5.3) * CFrame.Angles(math.rad(10), 0, 0), GOLD, Enum.Material.Neon))
+		-- A flat striped cap crowns the canopy on four stilts.
+		for _, p in ipairs({
+			{ -4.6, -2.6, 0.95, 8.03 }, { 4.6, -2.6, 0.95, 8.03 },
+			{ -4.6, 2.6, 1.9, 7.55 }, { 4.6, 2.6, 1.9, 7.55 },
+		}) do
+			nc(makePart(stall, "CapPost", Vector3.new(0.35, p[3], 0.35), cf * CFrame.new(p[1], p[4], p[2]),
+				wood, Enum.Material.Wood))
+		end
+		for j = 0, 4 do
+			local col = (j % 2 == 0) and s[2] or Color3.fromRGB(245, 240, 230)
+			nc(makePart(stall, "CapCanopy", Vector3.new(2.15, 0.2, 6.4),
+				cf * CFrame.new(-4.3 + j * 2.15, 8.6, 0), col, Enum.Material.SmoothPlastic))
+		end
+		nc(makePart(stall, "CapTrim", Vector3.new(11.1, 0.3, 0.3), cf * CFrame.new(0, 8.45, -3.3),
+			GOLD, Enum.Material.Neon))
+		-- Back wall in the stall's deep colour, gold-railed,
+		-- with a goods shelf mounted under the rail.
+		nc(makePart(stall, "StallBack", Vector3.new(14.6, 5.0, 0.3), cf * CFrame.new(0, 2.5, 4.35),
+			s[2]:Lerp(Color3.fromRGB(0, 0, 0), 0.55), Enum.Material.SmoothPlastic))
+		nc(makePart(stall, "BackRail", Vector3.new(14.9, 0.3, 0.4), cf * CFrame.new(0, 5.15, 4.35),
+			GOLD, Enum.Material.Neon))
+		nc(makePart(stall, "Shelf", Vector3.new(11.5, 0.25, 1.1), cf * CFrame.new(0, 3.05, 3.55),
+			deepWood, Enum.Material.Wood))
+		for g, gx in ipairs({ -4.5, -1.5, 1.5, 4.5 }) do
+			nc(makePart(stall, "ShelfGoods", Vector3.new(0.9, 0.9, 0.9),
+				cf * CFrame.new(gx, 3.62, 3.55), goodsColors[(g % 3) + 1], Enum.Material.SmoothPlastic))
+		end
+		-- The long counter: deep wood, pale top, gold face
+		-- strip, five goods piles.
+		nc(makePart(stall, "StallCounter", Vector3.new(12.4, 1.9, 2.4), cf * CFrame.new(0, 0.95, -2.4),
+			Color3.fromRGB(96, 66, 44), Enum.Material.Wood))
+		nc(makePart(stall, "CounterTop", Vector3.new(13.0, 0.3, 3.0), cf * CFrame.new(0, 2.05, -2.4),
+			Color3.fromRGB(150, 108, 70), Enum.Material.Wood))
+		nc(makePart(stall, "CounterTrim", Vector3.new(12.6, 0.35, 0.12), cf * CFrame.new(0, 1.5, -3.66),
+			GOLD, Enum.Material.Neon))
+		for g, gx in ipairs({ -4.8, -2.4, 0, 2.4, 4.8 }) do
+			local good = nc(makePart(stall, "Goods", Vector3.new(0.95, 0.95, 0.95),
+				cf * CFrame.new(gx, 2.68, -2.4), goodsColors[(g % 3) + 1], Enum.Material.SmoothPlastic))
+			if g == 3 then
 				good.Shape = Enum.PartType.Ball
 			end
 		end
-		for _, cx in ipairs({ -3.4, 3.4 }) do
-			nc(makePart(stall, "StallCrate", Vector3.new(1.3, 1.3, 1.3), cf * CFrame.new(cx, 0.65, 1.7),
-				Color3.fromRGB(160, 118, 78), Enum.Material.Wood))
-		end
-		nc(makeDisc(stall, "StallBarrel", 0.75, 1.5, cf * CFrame.new(-4.7, 0.75, 0.6),
+		-- Crates and barrels fill the booth's sides.
+		nc(makePart(stall, "StallCrate", Vector3.new(1.6, 1.6, 1.6), cf * CFrame.new(-6.3, 0.8, 2.4),
+			Color3.fromRGB(160, 118, 78), Enum.Material.Wood))
+		nc(makePart(stall, "StallCrate", Vector3.new(1.6, 1.6, 1.6), cf * CFrame.new(-6.3, 2.4, 2.4),
+			Color3.fromRGB(150, 110, 72), Enum.Material.Wood))
+		nc(makePart(stall, "StallCrate", Vector3.new(1.6, 1.6, 1.6), cf * CFrame.new(6.3, 0.8, 2.7),
+			Color3.fromRGB(160, 118, 78), Enum.Material.Wood))
+		nc(makeDisc(stall, "StallBarrel", 0.85, 1.7, cf * CFrame.new(6.6, 0.85, -0.9),
 			Color3.fromRGB(120, 84, 56), Enum.Material.Wood))
-		local board = nc(makePart(stall, "StallSign", Vector3.new(5.5, 1.5, 0.25), cf * CFrame.new(0, 3.55, -2.7),
-			Color3.fromRGB(52, 38, 34), Enum.Material.Wood))
-		attachSign(board, s[2], nil, s[3])
+		nc(makeDisc(stall, "StallBarrel", 0.85, 1.7, cf * CFrame.new(-6.6, 0.85, -1.6),
+			Color3.fromRGB(120, 84, 56), Enum.Material.Wood))
+		-- The hanging sign: deep board, gold frame, same text.
+		local board = nc(makePart(stall, "StallSign", Vector3.new(8.4, 2.2, 0.3), cf * CFrame.new(0, 4.7, -4.6),
+			Color3.fromRGB(30, 24, 28), Enum.Material.SmoothPlastic))
+		nc(makePart(stall, "SignTrimT", Vector3.new(8.7, 0.28, 0.36), cf * CFrame.new(0, 5.8, -4.6), GOLD, Enum.Material.Neon))
+		nc(makePart(stall, "SignTrimB", Vector3.new(8.7, 0.28, 0.36), cf * CFrame.new(0, 3.6, -4.6), GOLD, Enum.Material.Neon))
+		nc(makePart(stall, "SignTrimL", Vector3.new(0.28, 2.5, 0.36), cf * CFrame.new(-4.2, 4.7, -4.6), GOLD, Enum.Material.Neon))
+		nc(makePart(stall, "SignTrimR", Vector3.new(0.28, 2.5, 0.36), cf * CFrame.new(4.2, 4.7, -4.6), GOLD, Enum.Material.Neon))
+		attachSign(board, s[1], nil, s[2])
+		-- A lamp orb hangs under the canopy, in front of
+		-- the sign.
+		nc(makePart(stall, "LampCord", Vector3.new(0.1, 1.3, 0.1), cf * CFrame.new(0, 6.65, -2.4),
+			deepWood, Enum.Material.Wood))
+		local orb = nc(makePart(stall, "LampOrb", Vector3.new(0.95, 0.95, 0.95), cf * CFrame.new(0, 5.75, -2.4),
+			Color3.fromRGB(255, 225, 160), Enum.Material.Neon))
+		orb.Shape = Enum.PartType.Ball
+		-- Pennant swag across the front posts.
+		makePennants(stall, (cf * CFrame.new(-5.2, 6.15, -3.2)).Position, (cf * CFrame.new(5.2, 6.15, -3.2)).Position)
 		-- The vendor, behind the counter, arms forward on it.
-		makeFigure(stall, cf * CFrame.new(0, 0, 1.3), shirts[i], Color3.fromRGB(80, 70, 90),
-			skins[(i % 3) + 1], "vendor", s[3])
+		makeFigure(stall, cf * CFrame.new(0, 0, 0.9), shirts[i], Color3.fromRGB(80, 70, 90),
+			skins[(i % 3) + 1], "vendor", s[2])
 		-- Two stalls get a customer browsing out front.
 		if i == 2 or i == 5 then
-			makeFigure(stall, cf * CFrame.new(1.6, 0, -4.8) * CFrame.Angles(0, math.rad(180), 0),
+			makeFigure(stall, cf * CFrame.new(1.6, 0, -6.8) * CFrame.Angles(0, math.rad(180), 0),
 				shirts[(i % 7) + 1], Color3.fromRGB(60, 90, 130), skins[((i + 1) % 3) + 1], "stand", nil)
 		end
 	end
-	makeGantrySign(world, Vector3.new(81.9, 9.6, 57.4), Vector3.new(0, 8, 0), 19, 4.2,
-		"MAGMA MARKET", "Seven stalls of snacks and shiny things", Color3.fromRGB(255, 150, 60),
-		Color3.fromRGB(96, 70, 50), true)
+	-- The gantry fronts the quarter from its island side —
+	-- gold trim and deep posts now, matching the podium —
+	-- angled down the quarter's own front so the rows read
+	-- FRUIT, GEMS, POTIONS from the gantry inward.
+	makeGantrySign(world, Vector3.new(121.0, 17.5, -69.4), Vector3.new(0, 8, 0), 24, 5,
+		"MAGMA MARKET", "Seven stalls of snacks and shiny things", GOLD,
+		Color3.fromRGB(52, 42, 36), true)
+
+	-- Ground treatment: dark basalt paving with a gold rim
+	-- and a translucent red carpet heart under the stall
+	-- rows, a smaller paved apron under the gantry, and red
+	-- carpet strips along each row's front — the podium's
+	-- floor language, replacing the plain shore discs.
+	nc(makeDisc(world, "MarketPavingTrim", 32.8, 0.36, CFrame.new(151.9, 0, -75.5),
+		GOLD, Enum.Material.Neon))
+	makeDisc(world, "MarketPaving", 32, 0.28, CFrame.new(151.9, 0.10, -75.5),
+		Color3.fromRGB(52, 44, 42), Enum.Material.Slate)
+	local heart = nc(makeDisc(world, "MarketCarpet", 28, 0.1, CFrame.new(151.9, 0.27, -75.5),
+		Color3.fromRGB(168, 40, 52), Enum.Material.Fabric))
+	heart.Transparency = 0.45
+	nc(makeDisc(world, "MarketPavingTrim", 15.8, 0.36, CFrame.new(121.0, 0, -69.4),
+		GOLD, Enum.Material.Neon))
+	makeDisc(world, "MarketPaving", 15, 0.28, CFrame.new(121.0, 0.10, -69.4),
+		Color3.fromRGB(52, 44, 42), Enum.Material.Slate)
+	for _, strip in ipairs({
+		{ 130.9, -70.7 }, { 145.5, -72.6 }, { 159.8, -74.5 },
+	}) do
+		nc(makePart(world, "MarketCarpetStrip", Vector3.new(40, 0.12, 3.2),
+			CFrame.new(strip[1], 0.3, strip[2]) * CFrame.Angles(0, math.rad(-82.5), 0),
+			Color3.fromRGB(168, 40, 52), Enum.Material.Fabric))
+	end
+
+	-- Dressing, so the quarter reads busy from every angle:
+	-- crate clusters and a barrel row behind the rows, two
+	-- goods carts, goods piles in the aisles, orb lamps at
+	-- the corners and a pennant banner across the front.
+	-- Everything sits in the aisles and margins — the walk
+	-- route and the row fronts stay clear.
+	local crateWood = Color3.fromRGB(160, 118, 78)
+	for _, c in ipairs({
+		{ 144.6, -81.6, 0 }, { 146.3, -81.3, 0 }, { 145.4, -81.5, 1 },
+		{ 150.7, -50.1, 0 }, { 152.3, -49.8, 0 },
+	}) do
+		nc(makePart(world, "MarketCrate", Vector3.new(1.5, 1.5, 1.5),
+			CFrame.new(c[1], 0.75 + c[3] * 1.5, c[2]), crateWood, Enum.Material.Wood))
+	end
+	nc(makeDisc(world, "MarketBarrel", 0.85, 1.7, CFrame.new(149.1, 0.85, -48.6),
+		Color3.fromRGB(120, 84, 56), Enum.Material.Wood))
+	for _, bx in ipairs({ 125.2, 127.1, 129.0 }) do
+		nc(makeDisc(world, "MarketBarrel", 0.85, 1.7, CFrame.new(bx, 0.85, -88.3),
+			Color3.fromRGB(120, 84, 56), Enum.Material.Wood))
+	end
+	local function makeCart(cx, cz)
+		local cart = Instance.new("Folder")
+		cart.Name = "MarketCart"
+		cart.Parent = world
+		local cf = CFrame.new(cx, 0, cz) * CFrame.Angles(0, math.rad(-82.5), 0)
+		nc(makePart(cart, "CartBed", Vector3.new(4.6, 0.45, 2.6), cf * CFrame.new(0, 1.15, 0),
+			Color3.fromRGB(120, 88, 60), Enum.Material.Wood))
+		for _, pz in ipairs({ -1.2, 1.2 }) do
+			nc(makePart(cart, "CartSide", Vector3.new(4.6, 0.8, 0.25), cf * CFrame.new(0, 1.65, pz),
+				Color3.fromRGB(104, 76, 52), Enum.Material.Wood))
+			nc(makePart(cart, "CartLeg", Vector3.new(0.18, 0.9, 0.18), cf * CFrame.new(-1.9, 0.45, pz * 0.83),
+				Color3.fromRGB(90, 66, 46), Enum.Material.Wood))
+			local wheel = nc(makePart(cart, "CartWheel", Vector3.new(0.35, 2.1, 2.1),
+				cf * CFrame.new(0.3, 1.05, pz * 1.21) * CFrame.Angles(0, math.rad(90), 0),
+				Color3.fromRGB(70, 54, 42), Enum.Material.Wood))
+			wheel.Shape = Enum.PartType.Cylinder
+			nc(makePart(cart, "CartHandle", Vector3.new(2.0, 0.15, 0.15), cf * CFrame.new(-2.9, 1.0, pz * 0.67),
+				Color3.fromRGB(90, 66, 46), Enum.Material.Wood))
+		end
+		for g, gp in ipairs({ { -1.2, 0 }, { 0.2, 0.3 }, { 1.3, -0.3 } }) do
+			nc(makePart(cart, "CartGoods", Vector3.new(1.1, 1.0, 1.1), cf * CFrame.new(gp[1], 1.9, gp[2]),
+				goodsColors[(g % 3) + 1], Enum.Material.SmoothPlastic))
+		end
+	end
+	makeCart(133.4, -57.0)
+	makeCart(150.0, -94.4)
+	for _, pile in ipairs({ { 147.0, -57.7 }, { 158.7, -79.4 }, { 161.9, -55.6 } }) do
+		for g, gp in ipairs({ { 0, 0, 0.75 }, { 0.9, 0.4, 0.65 }, { -0.8, -0.3, 0.65 }, { 0.2, 0.1, 0.6 } }) do
+			local ball = nc(makePart(world, "GoodsPile", Vector3.new(gp[3] * 2, gp[3] * 2, gp[3] * 2),
+				CFrame.new(pile[1] + gp[1], gp[3], pile[2] + gp[2]),
+				goodsColors[(g % 3) + 1], Enum.Material.SmoothPlastic))
+			ball.Shape = Enum.PartType.Ball
+		end
+	end
+	makeOrbLamp(world, 132.1, 0, -53.7)
+	makeOrbLamp(world, 127.7, 0, -87.4)
+	makeOrbLamp(world, 174.8, 0, -59.3)
+	makeOrbLamp(world, 170.3, 0, -93.0)
+	for _, bp in ipairs({ { 129.9, -55.4 }, { 126.0, -85.2 } }) do
+		nc(makePart(world, "BannerPole", Vector3.new(0.35, 9.5, 0.35), CFrame.new(bp[1], 4.75, bp[2]),
+			Color3.fromRGB(110, 80, 54), Enum.Material.Wood))
+		local tip = nc(makePart(world, "BannerTip", Vector3.new(0.5, 0.5, 0.5), CFrame.new(bp[1], 9.75, bp[2]),
+			GOLD, Enum.Material.Neon))
+		tip.Shape = Enum.PartType.Ball
+	end
+	makePennants(world, Vector3.new(129.9, 9.5, -55.4), Vector3.new(126.0, 9.5, -85.2))
 end
 
 -- PLAZA CENTREPIECE: a tiered lava fountain on the plaza-to-parade
@@ -1784,9 +1966,11 @@ local function BuildSignageLife()
 		"THE DOCKS", "Boats and sea breeze", Color3.fromRGB(80, 200, 210))
 	makeSignPost(world, Vector3.new(-42, 4.8, 118), Vector3.new(0, 4, 140), 12, 3.2,
 		"BEACH POOL", "Mind the lava - it is warm", Color3.fromRGB(90, 180, 255))
-	makeSignPost(world, Vector3.new(64, 4.8, 40), Vector3.new(30, 4, 90), 13, 3.2,
-		"MAGMA MARKET", "Seven stalls of snacks", Color3.fromRGB(255, 150, 60))
-	-- Pennant poles: market arc (r 106), plaza crossing, dock mouth.
+	-- (No MAGMA MARKET directional signpost: the user ordered
+	-- it deleted 2026-11-20 — the quarter's own gantry sign is
+	-- the market's marker now.)
+	-- Pennant poles: market arc (r 106, rotated with the
+	-- quarter), plaza crossing, dock mouth.
 	local poleTops = {}
 	local function pennantPole(x, z, h)
 		nc(makePart(world, "PennantPole", Vector3.new(0.35, h, 0.35), CFrame.new(x, h / 2, z),
@@ -1796,9 +1980,9 @@ local function BuildSignageLife()
 		tip.Shape = Enum.PartType.Ball
 		table.insert(poleTops, Vector3.new(x, h, z))
 	end
-	pennantPole(102.4, 27.4, 9.5)
-	pennantPole(86.8, 60.8, 9.5)
-	pennantPole(60.8, 86.8, 9.5)
+	pennantPole(97.9, -40.6, 9.5)
+	pennantPole(102.6, -26.5, 9.5)
+	pennantPole(105.3, -12.1, 9.5)
 	makePennants(world, poleTops[1], poleTops[2])
 	makePennants(world, poleTops[2], poleTops[3])
 	pennantPole(-21, 142, 10)
@@ -1952,11 +2136,10 @@ local function BuildVillagers()
 		})
 	end
 	-- Chatting pair at the market: two islanders facing each other
-	-- in front of the SNACKS stall (the stall math from
-	-- BuildMarketRow, angle 35, fronts toward the island centre).
-	local sang = math.rad(35)
+	-- in front of the SNACKS stall (its BuildMarketRow spot,
+	-- fronts toward the island centre).
 	local scf = CFrame.lookAt(
-		Vector3.new(112 * math.cos(sang), 0, 112 * math.sin(sang)), Vector3.new(0, 0, 0))
+		Vector3.new(153.3, 0, -65.1), Vector3.new(0, 0, 0))
 	local mA = (scf * CFrame.new(-1.8, 0, -5.6)).Position
 	local mB = (scf * CFrame.new(1.8, 0, -5.6)).Position
 	local tono = makeFigure(world, CFrame.lookAt(mA, mB),
@@ -1975,11 +2158,10 @@ local function BuildVillagers()
 	local sinta = makeFigure(world, CFrame.lookAt(fB, fA),
 		Color3.fromRGB(255, 110, 90), Color3.fromRGB(90, 90, 110), Color3.fromRGB(255, 205, 160), "stand", nil)
 	makeNameTag(sinta, "Sinta")
-	-- Chatting pair at the SPICES stall (angle 55, same stall math
-	-- as Tono & Wati at SNACKS): the market's far end stays peopled.
-	local gang = math.rad(55)
+	-- Chatting pair at the SPICES stall (same stall-spot math as
+	-- Tono & Wati at SNACKS): the market's far end stays peopled.
 	local gcf = CFrame.lookAt(
-		Vector3.new(112 * math.cos(gang), 0, 112 * math.sin(gang)), Vector3.new(0, 0, 0))
+		Vector3.new(167.7, 0, -67.0), Vector3.new(0, 0, 0))
 	local gA = (gcf * CFrame.new(-1.8, 0, -5.6)).Position
 	local gB = (gcf * CFrame.new(1.8, 0, -5.6)).Position
 	local yudi = makeFigure(world, CFrame.lookAt(gA, gB),

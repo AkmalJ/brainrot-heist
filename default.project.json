@@ -1,1 +1,94 @@
-{"name":"brainrot-heist","tree":{"$className":"DataModel","Lighting":{"$properties":{"Ambient":[0.64705,0.68627,0.7647],"Brightness":3,"ClockTime":13.5,"GlobalShadows":true,"Outlines":false,"Technology":"Voxel"}},"Players":{"$properties":{"CharacterAutoLoads":true}},"ReplicatedStorage":{"$path":"src/shared"},"ServerScriptService":{"$path":"src/server"},"SoundService":{"$properties":{"RespectFilteringEnabled":true}},"StarterPlayer":{"StarterPlayerScripts":{"Client":{"$path":"src/client/Client.client.luau"}}},"Workspace":{"$properties":{"FilteringEnabled":true},"Baseplate":{"$className":"Part","$properties":{"Anchored":true,"Color":[0.41568,0.74509,0.29019],"Locked":true,"Position":[0,-10.02,0],"Size":[440,20,440]}}}}}
+{
+  "name": "brainrot-heist",
+  "tree": {
+    "$className": "DataModel",
+    "Lighting": {
+      "$properties": {
+        "Ambient": [
+          0.64705,
+          0.68627,
+          0.7647
+        ],
+        "Brightness": 3,
+        "ClockTime": 13.5,
+        "GlobalShadows": true,
+        "Outlines": false,
+        "Technology": "Voxel"
+      }
+    },
+    "Players": {
+      "$properties": {
+        "CharacterAutoLoads": true
+      }
+    },
+    "ReplicatedStorage": {
+      "$path": "src/shared",
+      "MusicTracks": {
+        "$className": "Folder",
+        "Paradise Falls": {
+          "$className": "Sound",
+          "$properties": {
+            "SoundId": "rbxassetid://1837879082"
+          }
+        },
+        "Poolside": {
+          "$className": "Sound",
+          "$properties": {
+            "SoundId": "rbxassetid://9046863253"
+          }
+        },
+        "Tender Tropical House": {
+          "$className": "Sound",
+          "$properties": {
+            "SoundId": "rbxassetid://1836105293"
+          }
+        }
+      }
+    },
+    "ServerScriptService": {
+      "$path": "src/server"
+    },
+    "SoundService": {
+      "$properties": {
+        "RespectFilteringEnabled": true
+      }
+    },
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "Client": {
+          "$path": "src/client/Client.client.luau"
+        },
+        "Interface": {
+          "$path": "src/client/Interface.luau"
+        }
+      }
+    },
+    "Workspace": {
+      "$properties": {
+        "FilteringEnabled": true
+      },
+      "Baseplate": {
+        "$className": "Part",
+        "$properties": {
+          "Anchored": true,
+          "Color": [
+            0.41568,
+            0.74509,
+            0.29019
+          ],
+          "Locked": true,
+          "Position": [
+            0,
+            -10.02,
+            0
+          ],
+          "Size": [
+            440,
+            20,
+            440
+          ]
+        }
+      }
+    }
+  }
+}
