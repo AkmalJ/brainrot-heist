@@ -662,6 +662,28 @@ function Brainrots.BuildBrainrotModel(def, mutationName)
 	labelLine("RarityLabel", "", 0.42, 0.3, 15, Color3.fromRGB(255, 255, 255), false)
 	labelLine("RateLabel", "", 0.7, 0.3, 15, Color3.fromRGB(160, 255, 170), false)
 
+	-- Display scale-up (visual only): the top sheets' casts are big,
+	-- character-height chunky figures that dominate the frame, while
+	-- this cast at raw def.size read modest and let the labels do the
+	-- talking. Grow every part uniformly about the model's ground
+	-- origin (0,0,0 between the feet), so feet stay planted on
+	-- pedestals/pads/pool floors and every PivotTo placement, prompt
+	-- and price is untouched — only the silhouette gets louder. The
+	-- widest gods (size 1.8) reach ~4.8 studs across, flush with the
+	-- pedestals' neon flange rings; their feet stay on the disc.
+	local FIGURE_SCALE = 1.4
+	for _, inst in ipairs(model:GetDescendants()) do
+		if inst:IsA("BasePart") then
+			inst.Size *= FIGURE_SCALE
+			local cf = inst.CFrame
+			inst.CFrame = CFrame.new(cf.Position * FIGURE_SCALE) * (cf - cf.Position)
+		elseif inst:IsA("PointLight") then
+			inst.Range *= FIGURE_SCALE
+		elseif inst:IsA("BillboardGui") then
+			inst.StudsOffset *= FIGURE_SCALE
+		end
+	end
+
 	model.PrimaryPart = body
 	model:SetAttribute("DefName", def.name)
 	model:SetAttribute("MutationName", mutationName or "")

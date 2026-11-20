@@ -71,8 +71,10 @@ Lighting.EnvironmentSpecularScale = 0.8
 
 -- Post/sky dressing, rebuilt fresh each run so re-running this script
 -- never stacks duplicates: a thin bright Atmosphere for depth, a mild
--- SunRays for cheer, and a gentle Bloom so the Neon trims glow.
-for _, fxName in ipairs({ "MagmaAtmosphere", "MagmaSunRays", "MagmaBloom" }) do
+-- SunRays for cheer, a strong Bloom so the Neon trims/lava/signs glow
+-- like the top sheets, and a colour grade that pushes saturation so
+-- the palette reads loud instead of washed-out pastel.
+for _, fxName in ipairs({ "MagmaAtmosphere", "MagmaSunRays", "MagmaBloom", "MagmaColorGrade" }) do
 	local old = Lighting:FindFirstChild(fxName)
 	if old then
 		old:Destroy()
@@ -94,10 +96,16 @@ sunRays.Spread = 0.8
 sunRays.Parent = Lighting
 local bloom = Instance.new("BloomEffect")
 bloom.Name = "MagmaBloom"
-bloom.Intensity = 0.35
-bloom.Size = 28
-bloom.Threshold = 0.85
+bloom.Intensity = 0.75
+bloom.Size = 24
+bloom.Threshold = 0.75
 bloom.Parent = Lighting
+local colorGrade = Instance.new("ColorCorrectionEffect")
+colorGrade.Name = "MagmaColorGrade"
+colorGrade.Saturation = 0.3
+colorGrade.Contrast = 0.08
+colorGrade.Brightness = 0
+colorGrade.Parent = Lighting
 
 --====================================================================--
 -- Small building helpers
@@ -413,21 +421,23 @@ local function BuildIslandGround()
 		Color3.fromRGB(240, 252, 255), Enum.Material.SmoothPlastic)
 	foam.CanCollide = false
 	-- The island: one great disc, top surface at Y = 0 (the playable
-	-- plane every system is tuned to), in warm sandstone — the top
-	-- 10 zone their ground in saturated colour, never raw grey.
+	-- plane every system is tuned to), in a deepened charcoal-warm
+	-- tone — dark ground is what makes the top sheets' neon trim,
+	-- coloured patches and booths pop; the old pale sandstone washed
+	-- them out in daylight.
 	makeDisc(world, "Island", 200, 4, CFrame.new(0, -2, 0),
-		Color3.fromRGB(163, 141, 120), Enum.Material.Slate)
+		Color3.fromRGB(104, 88, 76), Enum.Material.Slate)
 	-- A reef step ringing the shoreline, poking just above the surf:
 	-- the island gains a terraced edge instead of ending as a plate.
 	local reef = makeDisc(world, "ReefRing", 212, 2, CFrame.new(0, -2, 0),
-		Color3.fromRGB(112, 97, 90), Enum.Material.Slate)
+		Color3.fromRGB(74, 64, 60), Enum.Material.Slate)
 	reef.CanCollide = false
 	-- The ash field: a dark basalt inlay zoning the volcano's domain
 	-- (r <= 102 covers the parade ring and the inner mid-ground), so
 	-- the island reads in regions — ash heart, bright shore — the way
 	-- the top 10 zone their floors.
 	local ash = makeDisc(world, "AshField", 102, 0.16, CFrame.new(0, 0, 0),
-		Color3.fromRGB(99, 80, 74), Enum.Material.Slate)
+		Color3.fromRGB(71, 57, 52), Enum.Material.Slate)
 	ash.CanCollide = false
 	-- Soft colour patches in the outer mid-ground ring: grass and
 	-- coral-sand clearings that break the shore's single tone.
@@ -680,7 +690,7 @@ end
 local function BuildZones()
 	-- Obsidian Fields: a high plateau NW, unlocked at Rekindle 1.
 	makePart(world, "FieldsPlateau", Vector3.new(120, 16, 120), CFrame.new(-115, 0, -115),
-		Color3.fromRGB(132, 118, 120), Enum.Material.Slate)
+		Color3.fromRGB(90, 80, 82), Enum.Material.Slate)
 	for i = 1, 12 do
 		local x = -115 + ((i * 37) % 100) - 50
 		local z = -115 + ((i * 53) % 100) - 50
@@ -850,7 +860,7 @@ local function BuildZones()
 		"OBSIDIAN FIELDS", "Unlocked at Rekindle 1 — richer wild spawns", Color3.fromRGB(150, 120, 255))
 	-- Crater Rim: a high shelf on the volcano's north face, Rekindle 3.
 	makePart(world, "RimPlateau", Vector3.new(96, 10, 64), CFrame.new(0, 25, -94),
-		Color3.fromRGB(122, 106, 102), Enum.Material.Slate)
+		Color3.fromRGB(83, 72, 69), Enum.Material.Slate)
 	-- Glowing lava cracks stitched across the Rim's top face.
 	for i = 1, 4 do
 		local crack = makePart(world, "RimCrack", Vector3.new(13 + i * 2, 0.25, 1.5),
