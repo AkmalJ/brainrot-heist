@@ -226,7 +226,7 @@ local function listify(container)
 		end
 		return out
 	end
-	for _, key in ipairs({ "list", "List", "entries", "Entries", "all", "All", "items", "cast", "Cast" }) do
+	for _, key in ipairs({ "list", "List", "entries", "Entries", "all", "All", "items", "cast", "Cast", "Characters", "characters", "Tracks", "tracks" }) do
 		if type(container[key]) == "table" then
 			return listify(container[key])
 		end
