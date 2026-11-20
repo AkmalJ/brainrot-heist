@@ -1836,7 +1836,9 @@ local function makeNameTag(fig, name)
 	gui.Name = "NameTag"
 	gui.Size = UDim2.fromOffset(140, 32)
 	gui.StudsOffset = Vector3.new(0, 1.05, 0)
-	gui.AlwaysOnTop = true
+	-- depth-tested, NOT always-on-top: names must not shine
+	-- through signs and walls (Akmal, photo pass)
+	gui.AlwaysOnTop = false
 	gui.MaxDistance = 160
 	gui.Parent = head
 	local l = makeLabel(gui, "Name", name, UDim2.fromScale(1, 1), UDim2.fromScale(0, 0),

@@ -639,7 +639,9 @@ function Brainrots.BuildBrainrotModel(def, mutationName)
 	gui.Name = "BrainrotLabel"
 	gui.Size = UDim2.fromOffset(230, 84)
 	gui.StudsOffset = Vector3.new(0, 1.6, 0)
-	gui.AlwaysOnTop = true
+	-- depth-tested, NOT always-on-top: labels must not shine
+	-- through signs, walls and the volcano (Akmal, photo pass)
+	gui.AlwaysOnTop = false
 	gui.MaxDistance = 220
 	gui.Parent = head
 
