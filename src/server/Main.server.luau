@@ -247,9 +247,13 @@ local function makeGantrySign(parent, position, lookAtPoint, w, h, titleText, su
 			cf * CFrame.new(px, h / 2 - 0.6, 0), trimColor, Enum.Material.Neon)
 		collar.CanCollide = false
 	end
-	local board = makePart(g, "Board", Vector3.new(w, h, 0.45), cf, Color3.fromRGB(34, 26, 28), Enum.Material.Wood)
+	-- warm lava-brown board, not near-black: the marquee face was
+	-- reading as a dark void in screenshots (Akmal, photo pass)
+	local board = makePart(g, "Board", Vector3.new(w, h, 0.45), cf, Color3.fromRGB(96, 48, 30), Enum.Material.Wood)
 	makePart(g, "TrimTop", Vector3.new(w + 0.35, 0.3, 0.55), cf * CFrame.new(0, h / 2, 0), trimColor, Enum.Material.Neon)
 	makePart(g, "TrimBottom", Vector3.new(w + 0.35, 0.3, 0.55), cf * CFrame.new(0, -h / 2, 0), trimColor, Enum.Material.Neon)
+	makePart(g, "TrimLeft", Vector3.new(0.3, h + 0.35, 0.55), cf * CFrame.new(-w / 2, 0, 0), trimColor, Enum.Material.Neon)
+	makePart(g, "TrimRight", Vector3.new(0.3, h + 0.35, 0.55), cf * CFrame.new(w / 2, 0, 0), trimColor, Enum.Material.Neon)
 	if withBulbs then
 		-- Carnival bulbs marching along the board's top edge — the
 		-- marquee read from Ice Fish's cover, for a handful of parts.
