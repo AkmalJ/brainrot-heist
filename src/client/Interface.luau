@@ -276,8 +276,10 @@ local function buildFigure(record, entry)
 	viewport.Position = UDim2.new(0, 4, 0, 2)
 	viewport.Size = UDim2.new(1, -8, 0, 88)
 	viewport.ZIndex = 43
-	viewport.Ambient = Color3.fromRGB(135, 128, 122)
-	viewport.LightColor = Color3.fromRGB(255, 244, 230)
+	viewport.BackgroundColor3 = entry.color:Lerp(Color3.fromRGB(0, 0, 0), 0.8)
+	viewport.BackgroundTransparency = 0
+	viewport.Ambient = Color3.fromRGB(175, 170, 165)
+	viewport.LightColor = Color3.fromRGB(255, 255, 255)
 	viewport.LightDirection = Vector3.new(-0.5, -1, -0.7)
 	viewport.Parent = record.frame
 
@@ -303,7 +305,7 @@ local function buildFigure(record, entry)
 	end
 
 	local maxDim = math.max(size.X, size.Y, size.Z)
-	local dist = (maxDim / 2) / math.tan(math.rad(17.5)) * 1.3
+	local dist = (maxDim / 2) / math.tan(math.rad(17.5)) * 1.15
 	local cam = Instance.new("Camera")
 	cam.FieldOfView = 35
 	cam.CFrame = CFrame.lookAt(Vector3.new(0.55, 0.35, -1).Unit * dist, Vector3.new(0, 0, 0))
