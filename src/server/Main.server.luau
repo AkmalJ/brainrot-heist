@@ -754,11 +754,16 @@ local function BuildZones()
 	-- sandstone treads that protrude ~2.9 studs each, dark nosing
 	-- strips, side stringers, handrails, orb lamps at base and
 	-- arrival, a big sign at the base, and a landing slab whose top
-	-- is FLUSH with the plateau (y 8.0) — the last move is a walk.
+	-- is FLUSH with the plateau (y 8.0). SECOND playtest fix: the
+	-- landing's underside hovered 0.2 over the top tread (top 6.6),
+	-- so the exit still read as a floor capping the stairs and the
+	-- last move was a 1.4 jump against its lip; every rise was 1.4.
+	-- Now seven treads with 1.0 rises — the whole climb, landing
+	-- included, is a plain walk, no jumping, no lip.
 	local stairStone = Color3.fromRGB(233, 199, 148)
 	local stairWood = Color3.fromRGB(110, 78, 50)
-	local stepTops = { 6.6, 5.2, 3.8, 2.4, 1.0 }
-	local stepFronts = { -48.8, -45.9, -43.0, -40.1, -37.2 }
+	local stepTops = { 7.0, 6.0, 5.0, 4.0, 3.0, 2.0, 1.0 }
+	local stepFronts = { -48.8, -45.9, -43.0, -40.1, -37.2, -34.3, -31.4 }
 	for i, topY in ipairs(stepTops) do
 		local front = stepFronts[i]
 		makePart(world, "MesaStep", Vector3.new(14, topY, 5), CFrame.new(-115, topY / 2, front - 2.5),
@@ -775,21 +780,21 @@ local function BuildZones()
 		stairStone, Enum.Material.Sandstone)
 	-- Side stringer beams following the slope.
 	for _, sx in ipairs({ -122.3, -107.7 }) do
-		local mid = Vector3.new(sx, 3.95, -44.6)
-		local beam = makePart(world, "MesaStringer", Vector3.new(0.55, 0.9, 17.5),
-			CFrame.lookAt(mid, Vector3.new(sx, 7.5, -52.6)), stairWood, Enum.Material.Wood)
+		local mid = Vector3.new(sx, 3.5, -40.1)
+		local beam = makePart(world, "MesaStringer", Vector3.new(0.55, 0.9, 18.8),
+			CFrame.lookAt(mid, Vector3.new(sx, 7.0, -48.8)), stairWood, Enum.Material.Wood)
 		beam.CanCollide = false
 	end
 	-- Handrails: posts standing on the treads near both edges, one
 	-- angled rail per side at waist height.
 	for _, hx in ipairs({ -121.5, -108.5 }) do
-		for _, post in ipairs({ { -39.5, 1.0 }, { -45.5, 3.8 }, { -51.0, 6.6 } }) do
+		for _, post in ipairs({ { -30.6, 1.0 }, { -39.3, 4.0 }, { -48.0, 7.0 } }) do
 			makePart(world, "MesaRailPost", Vector3.new(0.35, 2.6, 0.35),
 				CFrame.new(hx, post[2] + 1.3, post[1]), stairWood, Enum.Material.Wood)
 		end
-		local railMid = Vector3.new(hx, 6.55, -45.25)
-		local rail = makePart(world, "MesaRail", Vector3.new(0.28, 0.28, 14.1),
-			CFrame.lookAt(railMid, Vector3.new(hx, 9.35, -51.7)), stairWood, Enum.Material.Wood)
+		local railMid = Vector3.new(hx, 6.6, -39.3)
+		local rail = makePart(world, "MesaRail", Vector3.new(0.28, 0.28, 18.4),
+			CFrame.lookAt(railMid, Vector3.new(hx, 9.6, -48.0)), stairWood, Enum.Material.Wood)
 		rail.CanCollide = false
 	end
 	-- Orb lamps: one at the stair base, one at the arrival on the
@@ -804,7 +809,7 @@ local function BuildZones()
 	end
 	-- The wayfinding sign at the base, big enough to read from the
 	-- plaza side of the mesa.
-	makeSignPost(world, Vector3.new(-115, 6.6, -34.5), Vector3.new(-115, 5, 90), 17, 4.4,
+	makeSignPost(world, Vector3.new(-115, 7.8, -27.5), Vector3.new(-115, 5, 90), 17, 4.4,
 		"OBSIDIAN FIELDS", "Stairs up - Rekindle 1 zone", Color3.fromRGB(170, 130, 255))
 	-- A watchtower on the plateau's SE shoulder: four legs, an open
 	-- cabin and a pitched roof in the zone's purple — the Fields'
@@ -869,11 +874,11 @@ local function BuildZones()
 			CFrame.new(sp[1], 33, sp[2]) * CFrame.Angles(0.15, sp[1], 0.1),
 			Color3.fromRGB(104, 88, 84), Enum.Material.Slate)
 	end
-	-- Rough stone steps climbing from the Fields toward the Rim.
-	for i = 0, 5 do
-		makePart(world, "RimStep", Vector3.new(10, 2.4, 8),
-			CFrame.new(-46 + i * 8, 9.5 + i * 3.4, -98), Color3.fromRGB(118, 104, 100), Enum.Material.Slate)
-	end
+	-- (The old rough RimSteps that climbed this line were REMOVED
+	-- in the route audit: their top three blocks were embedded
+	-- inside the Rim slab above, so the climb dead-ended under the
+	-- shelf's floor at y 20 — stairs capped by a floor, exactly the
+	-- trap Akmal reported. BuildRimAccess is the only Rim route.)
 	makeSignPost(world, Vector3.new(0, 34.5, -60), Vector3.new(0, 32, 60), 13, 3.4,
 		"CRATER RIM", "Unlocked at Rekindle 3 — the wildest spawns", Color3.fromRGB(255, 90, 60))
 end
@@ -1908,7 +1913,7 @@ local function BuildRimAccess()
 	rail.CanCollide = false
 	makeOrbLamp(world, 63.5, 0, -29)
 	makeOrbLamp(world, 46, 30, -66)
-	makeSignPost(world, Vector3.new(56, 6.6, -25.5), Vector3.new(56, 5, 90), 15, 4.2,
+	makeSignPost(world, Vector3.new(56, 7.7, -25.5), Vector3.new(56, 5, 90), 15, 4.2,
 		"CRATER RIM", "Stairs up - Rekindle 3 zone", Color3.fromRGB(255, 120, 60))
 end
 

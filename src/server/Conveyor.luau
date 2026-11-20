@@ -16,6 +16,7 @@
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local Brainrots = require(ReplicatedStorage:WaitForChild("Brainrots"))
 local Upgrades = require(ReplicatedStorage:WaitForChild("Upgrades"))
@@ -188,15 +189,13 @@ function Conveyor.Init(game)
 	end)
 
 	-- March step: advance every parade actor along the ring; a full
-	-- loop (2 pi of travel) despawns it at the gate.
-	task.spawn(function()
-		local last = os.clock()
-		while true do
-			task.wait(0.1)
-			local now = os.clock()
-			local dt = now - last
-			last = now
-			local t = now
+	-- loop (2 pi of travel) despawns it at the gate. Runs on
+	-- Heartbeat (per-frame) — the old 0.1 s wait() loop teleported
+	-- each marcher ~1 stud per step, which read as patah-patah
+	-- (choppy) motion in playtest; per-frame steps glide.
+	RunService.Heartbeat:Connect(function(dt)
+		local t = os.clock()
+		do
 			for id, actor in pairs(paradeActors) do
 				local step = (actor.speed / G.Parade.radius) * dt
 				actor.angle += step
