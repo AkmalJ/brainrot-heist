@@ -1993,6 +1993,22 @@ local function BuildVillagers()
 		Color3.fromRGB(150, 200, 255), Color3.fromRGB(80, 75, 95), Color3.fromRGB(255, 205, 160), "stand",
 		Color3.fromRGB(190, 120, 255))
 	makeNameTag(nia, "Nia")
+	-- Photo crowd at the fountain's parade side: a watching pair
+	-- on the SE rim (mirroring Rudi & Sinta's proven-clear spots
+	-- on the west rim) plus one solo watcher mid-ground, so the
+	-- plaza -> parade photo angle always has people in frame.
+	local fountainFace = Vector3.new(0, 0, 104)
+	local budi = makeFigure(world, CFrame.lookAt(Vector3.new(8, 0, 97), fountainFace),
+		Color3.fromRGB(255, 150, 60), Color3.fromRGB(70, 65, 85), Color3.fromRGB(198, 150, 110), "stand", nil)
+	makeNameTag(budi, "Budi")
+	local tari = makeFigure(world, CFrame.lookAt(Vector3.new(11, 0, 100.5), fountainFace),
+		Color3.fromRGB(140, 230, 255), Color3.fromRGB(95, 80, 105), Color3.fromRGB(255, 205, 160), "stand",
+		Color3.fromRGB(255, 120, 170))
+	makeNameTag(tari, "Tari")
+	local jaya = makeFigure(world, CFrame.lookAt(Vector3.new(16, 0, 88), fountainFace),
+		Color3.fromRGB(190, 255, 120), Color3.fromRGB(60, 70, 60), Color3.fromRGB(140, 100, 70), "stand",
+		Color3.fromRGB(70, 200, 120))
+	makeNameTag(jaya, "Jaya")
 end
 
 -- PALMS: sixteen curved palms — the empty north/west/east shore
