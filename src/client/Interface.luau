@@ -961,12 +961,14 @@ indexDetail.ZIndex = 41
 corner(indexDetail, 10)
 indexDetail.Parent = indexBody
 
-local detailTitle = makeLabel(indexDetail, "Tap a brainrot to inspect it", 21, THEME.ink, Enum.Font.GothamBlack)
+local detailTitle = makeLabel(indexDetail, "Tap a brainrot to inspect it", 21, THEME.gold, Enum.Font.GothamBlack)
+detailTitle.ZIndex = 42
 detailTitle.Position = UDim2.new(0, 10, 0, 4)
 detailTitle.Size = UDim2.new(1, -20, 0, 28)
 detailTitle.TextXAlignment = Enum.TextXAlignment.Left
 
 local detailJoke = makeLabel(indexDetail, "", 17, THEME.inkDim)
+detailJoke.ZIndex = 42
 detailJoke.Position = UDim2.new(0, 10, 0, 34)
 detailJoke.Size = UDim2.new(1, -20, 0, 42)
 detailJoke.TextXAlignment = Enum.TextXAlignment.Left
@@ -1081,6 +1083,8 @@ local function refreshIndex()
 	end
 	if selectedEntry then
 		selectEntry(selectedEntry)
+	else
+		detailJoke.Text = string.format("Collection: %d of %d found · tap any brainrot above to see its stats + joke", found, total)
 	end
 end
 
