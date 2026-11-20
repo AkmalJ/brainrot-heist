@@ -295,7 +295,9 @@ local function buildFigure(record, entry)
 	model.Parent = world
 
 	local cf, size = model:GetBoundingBox()
-	local shift = CFrame.new(-cf.Position.X, -cf.Position.Y, -cf.Position.Z)
+	-- centred, then nudged DOWN in frame: tall hats/antennas were
+	-- clipping the viewport's top edge
+	local shift = CFrame.new(-cf.Position.X, -cf.Position.Y - size.Y * 0.07, -cf.Position.Z)
 	local parts = {}
 	for _, d in ipairs(model:GetDescendants()) do
 		if d:IsA("BasePart") then
