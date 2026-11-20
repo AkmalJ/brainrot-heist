@@ -1390,10 +1390,11 @@ end
 -- (mesa landing in BuildZones above, Crater Rim flight below) —
 -- those are functional, not decoration.
 --
--- decoMovers registers the few parts the ambient loop animates
--- (boats, the lighthouse beam). The loop re-finds them BY NAME
--- under the world folder on every pass, so a world heal/rebuild
--- can never break it, and it never reads or writes Game state.
+-- decoMovers registers the few things the ambient loop animates
+-- (boats, the lighthouse beam, the walking villagers). The loop
+-- re-finds them BY NAME under the world folder on every pass, so
+-- a world heal/rebuild can never break it, and it never reads or
+-- writes Game state.
 --====================================================================--
 
 local decoMovers = {}
@@ -1812,6 +1813,144 @@ local function BuildSignageLife()
 		Color3.fromRGB(230, 130, 200), Color3.fromRGB(80, 70, 95), Color3.fromRGB(140, 100, 70), "stand", nil)
 end
 
+-- A small overhead name tag on a figure's head — the BillboardGui
+-- pattern the brainrot cast labels use, shrunk to one friendly
+-- first name. Parented to the Head part, so it rides wherever the
+-- figure is placed (or walked) for free.
+local function makeNameTag(fig, name)
+	local head = fig:FindFirstChild("Head")
+	if not head then
+		return
+	end
+	local gui = Instance.new("BillboardGui")
+	gui.Name = "NameTag"
+	gui.Size = UDim2.fromOffset(140, 32)
+	gui.StudsOffset = Vector3.new(0, 1.05, 0)
+	gui.AlwaysOnTop = true
+	gui.MaxDistance = 160
+	gui.Parent = head
+	local l = makeLabel(gui, "Name", name, UDim2.fromScale(1, 1), UDim2.fromScale(0, 0),
+		Enum.Font.GothamBold, 16, Color3.fromRGB(255, 250, 235))
+	l.TextStrokeTransparency = 0.35
+end
+
+-- VILLAGERS: six islanders who actually WALK the island on one big
+-- looping route — plaza -> market row fronts -> the booths apron
+-- -> down the dock path and back -> the Beach Pool path -> home —
+-- plus two chatting pairs (market, fountain). A solo playtest (and
+-- the judging screenshots) should never feel like a ghost town.
+-- The route stays on flat ground (y = 0) the whole way: outside
+-- the parade ring (outer edge r 80), in front of the market
+-- counters (fronts at r 104, counters end at r 109), behind the
+-- stalls along the booths apron (r 124, plot fronts at r 133),
+-- skirting the plaza disc (r 17 at (0, 150)) and the fountain
+-- (crystal ring r 8.6 at (0, 104)). Every waypoint was checked
+-- against the signs, palms and stalls it passes.
+-- Movement rides the ambient loop via decoMovers (kind
+-- "villager"): each figure's part offsets are captured at build
+-- time relative to its start CFrame, and the loop re-places every
+-- part from the clock each pass — position, bob and limb swing
+-- are pure functions of time, so a heal/rebuild can never desync
+-- a walker, and the loop stays nil-safe if one is missing.
+local function BuildVillagers()
+	local pts = {
+		Vector3.new(0, 0, 134), Vector3.new(24, 0, 122), Vector3.new(48.8, 0, 91.8),
+		Vector3.new(73.5, 0, 73.5), Vector3.new(91.8, 0, 48.8), Vector3.new(102.4, 0, 18.1),
+		Vector3.new(116.5, 0, 42.4), Vector3.new(95, 0, 79.7), Vector3.new(62, 0, 107.4),
+		Vector3.new(21.5, 0, 121), Vector3.new(-21.5, 0, 121), Vector3.new(6, 0, 130),
+		Vector3.new(24, 0, 138), Vector3.new(42, 0, 166), Vector3.new(54, 0, 190),
+		Vector3.new(44, 0, 195), Vector3.new(36, 0, 164), Vector3.new(18, 0, 140),
+		Vector3.new(-14, 0, 120), Vector3.new(-34, 0, 110), Vector3.new(-46, 0, 100),
+		Vector3.new(-28, 0, 118), Vector3.new(4, 0, 116),
+	}
+	local segs, total = {}, 0
+	for i = 1, #pts do
+		local a, b = pts[i], pts[(i % #pts) + 1]
+		local len = (b - a).Magnitude
+		segs[i] = { a = a, b = b, len = len, dir = (b - a) / len }
+		total += len
+	end
+	local route = { segs = segs, total = total }
+	local function routePoint(d)
+		d = d % total
+		for _, s in ipairs(segs) do
+			if d <= s.len then
+				return s.a:Lerp(s.b, d / s.len), s.dir
+			end
+			d -= s.len
+		end
+		return segs[#segs].b, segs[#segs].dir
+	end
+	local folk = {
+		{ name = "Bimo", shirt = Color3.fromRGB(240, 90, 80), pants = Color3.fromRGB(70, 80, 110),
+			skin = Color3.fromRGB(255, 205, 160), hat = Color3.fromRGB(255, 170, 60) },
+		{ name = "Sari", shirt = Color3.fromRGB(250, 200, 80), pants = Color3.fromRGB(90, 90, 120),
+			skin = Color3.fromRGB(198, 150, 110), hat = nil },
+		{ name = "Dedi", shirt = Color3.fromRGB(90, 200, 255), pants = Color3.fromRGB(60, 70, 90),
+			skin = Color3.fromRGB(140, 100, 70), hat = Color3.fromRGB(120, 220, 160) },
+		{ name = "Rina", shirt = Color3.fromRGB(230, 130, 200), pants = Color3.fromRGB(80, 70, 95),
+			skin = Color3.fromRGB(255, 205, 160), hat = nil },
+		{ name = "Joko", shirt = Color3.fromRGB(120, 210, 110), pants = Color3.fromRGB(70, 90, 120),
+			skin = Color3.fromRGB(198, 150, 110), hat = Color3.fromRGB(255, 120, 80) },
+		{ name = "Maya", shirt = Color3.fromRGB(180, 110, 230), pants = Color3.fromRGB(60, 60, 85),
+			skin = Color3.fromRGB(140, 100, 70), hat = nil },
+	}
+	for i, f in ipairs(folk) do
+		-- Even phase spacing on the shared loop at one shared speed:
+		-- the six stay spread around the island forever, never bunch.
+		local phase = (i - 1) * total / #folk
+		local p0, d0 = routePoint(phase)
+		local cf0 = CFrame.lookAt(p0, p0 + d0)
+		local fig = makeFigure(world, cf0, f.shirt, f.pants, f.skin, "stand", f.hat)
+		fig.Name = "Villager_" .. f.name
+		makeNameTag(fig, f.name)
+		local parts = {}
+		for _, ch in ipairs(fig:GetChildren()) do
+			if ch:IsA("BasePart") then
+				local rec = { n = ch.Name, cf = cf0:Inverse() * ch.CFrame }
+				if ch.Name == "LegL" or ch.Name == "LegR" or ch.Name == "ArmL" or ch.Name == "ArmR" then
+					local half = ch.Size.Y / 2
+					rec.swing = {
+						pivot = rec.cf.Position + Vector3.new(0, half, 0),
+						half = half,
+						k = (ch.Name == "LegL" and 0.45) or (ch.Name == "LegR" and -0.45)
+							or (ch.Name == "ArmL" and -0.3) or 0.3,
+					}
+				end
+				table.insert(parts, rec)
+			end
+		end
+		table.insert(decoMovers, {
+			name = fig.Name, kind = "villager", route = route,
+			speed = 7, phase = phase, parts = parts,
+		})
+	end
+	-- Chatting pair at the market: two islanders facing each other
+	-- in front of the SNACKS stall (the stall math from
+	-- BuildMarketRow, angle 35, fronts toward the island centre).
+	local sang = math.rad(35)
+	local scf = CFrame.lookAt(
+		Vector3.new(112 * math.cos(sang), 0, 112 * math.sin(sang)), Vector3.new(0, 0, 0))
+	local mA = (scf * CFrame.new(-1.8, 0, -5.6)).Position
+	local mB = (scf * CFrame.new(1.8, 0, -5.6)).Position
+	local tono = makeFigure(world, CFrame.lookAt(mA, mB),
+		Color3.fromRGB(255, 150, 60), Color3.fromRGB(70, 80, 100), Color3.fromRGB(255, 205, 160), "stand", nil)
+	makeNameTag(tono, "Tono")
+	local wati = makeFigure(world, CFrame.lookAt(mB, mA),
+		Color3.fromRGB(110, 220, 255), Color3.fromRGB(80, 70, 95), Color3.fromRGB(198, 150, 110), "stand",
+		Color3.fromRGB(250, 130, 190))
+	makeNameTag(wati, "Wati")
+	-- Chatting pair at the fountain, west side, clear of the
+	-- crystal ring (r 8.6) and of the villagers' route south of it.
+	local fA, fB = Vector3.new(-8, 0, 97), Vector3.new(-11, 0, 100.5)
+	local rudi = makeFigure(world, CFrame.lookAt(fA, fB),
+		Color3.fromRGB(150, 220, 160), Color3.fromRGB(60, 70, 90), Color3.fromRGB(140, 100, 70), "stand", nil)
+	makeNameTag(rudi, "Rudi")
+	local sinta = makeFigure(world, CFrame.lookAt(fB, fA),
+		Color3.fromRGB(255, 110, 90), Color3.fromRGB(90, 90, 110), Color3.fromRGB(255, 205, 160), "stand", nil)
+	makeNameTag(sinta, "Sinta")
+end
+
 -- PALMS: sixteen curved palms — the empty north/west/east shore
 -- ring, the gaps between booths (in front of the plot line, never
 -- blocking an entrance), and a pair watching the dock.
@@ -1930,12 +2069,15 @@ task.spawn(function()
 	end
 end)
 
--- Ambient life loop: boats bobbing at anchor and the lighthouse
--- beam sweeping the bay. This is the ONE decoration-only motion
--- loop: it re-finds its parts by name under the world folder on
--- every pass (a heal/rebuild simply leaves it idling on nils),
--- its body is pcall-wrapped so an error can never reach gameplay,
--- and it never reads or writes Game state.
+-- Ambient life loop: boats bobbing at anchor, the lighthouse
+-- beam sweeping the bay, and the villagers walking their loop.
+-- This is the ONE decoration-only motion loop: it re-finds its
+-- parts by name under the world folder on every pass (a
+-- heal/rebuild simply leaves it idling on nils), its body is
+-- pcall-wrapped so an error can never reach gameplay, and it
+-- never reads or writes Game state. It ticks at 0.06 s so the
+-- walkers glide instead of stepping (the boats and beam are pure
+-- functions of the clock, so the faster tick only smooths them).
 task.spawn(function()
 	while true do
 		pcall(function()
@@ -1949,11 +2091,47 @@ task.spawn(function()
 							* CFrame.Angles(math.sin(t * 0.7 + mv.phase) * 0.02, 0, math.cos(t * 0.8 + mv.phase) * 0.03))
 					elseif mv.kind == "beam" and inst:IsA("BasePart") then
 						inst.CFrame = CFrame.new(mv.base) * CFrame.Angles(0, t * 0.45, 0) * CFrame.new(0, 0, -15.5)
+					elseif mv.kind == "villager" and inst:IsA("Model") then
+						-- Walk the shared loop: distance along the
+						-- route is a pure function of the clock, so
+						-- position, heading, bob and limb swing all
+						-- agree with each other on every pass.
+						local d = (t * mv.speed + mv.phase) % mv.route.total
+						local pos, dir, acc = nil, nil, 0
+						for _, s in ipairs(mv.route.segs) do
+							if d <= acc + s.len then
+								pos = s.a:Lerp(s.b, (d - acc) / s.len)
+								dir = s.dir
+								break
+							end
+							acc += s.len
+						end
+						if pos and dir then
+							local ph = d * 2.2
+							local bob = math.abs(math.sin(ph)) * 0.13
+							local frame = CFrame.lookAt(
+								Vector3.new(pos.X, bob, pos.Z),
+								Vector3.new(pos.X + dir.X, bob, pos.Z + dir.Z))
+								* CFrame.Angles(0, 0, math.sin(ph) * 0.035)
+							local sw = math.sin(ph)
+							for _, pe in ipairs(mv.parts) do
+								local p = inst:FindFirstChild(pe.n)
+								if p then
+									if pe.swing then
+										p.CFrame = frame * (CFrame.new(pe.swing.pivot)
+											* CFrame.Angles(sw * pe.swing.k, 0, 0)
+											* CFrame.new(0, -pe.swing.half, 0))
+									else
+										p.CFrame = frame * pe.cf
+									end
+								end
+							end
+						end
 					end
 				end
 			end
 		end)
-		task.wait(0.15)
+		task.wait(0.06)
 	end
 end)
 
@@ -1975,6 +2153,7 @@ BuildFountain()
 BuildGroundDressing()
 BuildOceanLife()
 BuildSignageLife()
+BuildVillagers()
 BuildPalms()
 BuildSkyLayer()
 BuildRimAccess()
