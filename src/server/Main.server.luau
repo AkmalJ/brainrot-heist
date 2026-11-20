@@ -2136,6 +2136,170 @@ task.spawn(function()
 end)
 
 --====================================================================--
+-- FINAL DENSITY PASS: colour the grey mid-ground + neon ground trim
+--
+-- Akmal's verdict on the villager build, twice over: still "kurang
+-- padet / kurang rame". His high-angle screenshot shows why — the
+-- booth / market / volcano cores are busy, but the big grey flats
+-- between zones read empty and muted, and the #2 leaderboard sheet
+-- gets its crowded look largely from NEON GROUND TRIMMING: bright
+-- glowing edge strips lining its paths and pads against darker
+-- ground. So this pass does exactly those two things, decoration
+-- only, under the same world folder (heal/rebuild pattern intact):
+--   1. a patchwork of flat coloured ground discs over the bare
+--      flats (ash band around the volcano, north / east / west
+--      shores, the gaps between apron, plaza and beach path);
+--   2. thin Neon trim strips edging the ring road's outer edge,
+--      the plaza rim and the booths apron front, cycling cyan /
+--      hot pink / warm yellow like the #2 sheet;
+--   3. prop vignettes (crate clusters, rock piles with palm
+--      saplings, torch stands) grouped in the flats, never on a
+--      walkway, path, pad or the villagers' route;
+--   4. three more pennant strings across the plaza / market /
+--      apron sightlines for colour at eye level.
+-- Nothing here touches a gameplay position or Game state, and the
+-- static parts need no decoMovers registration.
+--====================================================================--
+
+local function BuildFinalDensity()
+	-- 1. Ground patchwork: flat discs (top Y = 0.16, above the ash
+	-- field's 0.08 and both older patch layers, below the beach
+	-- discs) in the island's four clearing colours.
+	local patchSand = Color3.fromRGB(238, 202, 140)
+	local patchTeal = Color3.fromRGB(64, 196, 178)
+	local patchCoral = Color3.fromRGB(245, 140, 110)
+	local patchGrass = Color3.fromRGB(116, 186, 104)
+	for _, p in ipairs({
+		-- the ash band around the volcano base (r 81-101)
+		{ -84, -31, 10, patchTeal }, { 42, -80, 9, patchGrass }, { -80, 45, 9, patchSand },
+		-- north flats and shore
+		{ 75, -150, 13, patchTeal }, { -15, -165, 15, patchCoral }, { -25, -140, 10, patchGrass },
+		{ 135, -120, 15, patchSand }, { 105, -70, 11, patchSand },
+		-- east flats and shore
+		{ 176, 28, 12, patchSand }, { 165, -85, 12, patchTeal }, { 175, -30, 11, patchCoral },
+		{ 142, 112, 12, patchTeal }, { 120, 140, 10, patchGrass },
+		-- west flats and shore
+		{ -70, -8, 11, patchTeal }, { -66, 64, 10, patchCoral },
+		{ -112, 108, 11, patchTeal }, { -172, 42, 12, patchSand },
+	}) do
+		nc(makeDisc(world, "GroundPatch", p[3], 0.16, CFrame.new(p[1], 0.08, p[2]),
+			p[4], Enum.Material.SmoothPlastic))
+	end
+
+	-- 2. Neon ground trim: thin glowing strips (top Y = 0.18) in
+	-- the #2 sheet's cyan / pink / yellow cycle.
+	local neonCycle = {
+		Color3.fromRGB(64, 225, 255), Color3.fromRGB(255, 92, 200), Color3.fromRGB(255, 205, 60),
+	}
+	local function neonStrip(x, z, lookX, lookZ, length, color)
+		nc(makePart(world, "NeonTrim", Vector3.new(length, 0.16, 0.8),
+			CFrame.lookAt(Vector3.new(x, 0.1, z), Vector3.new(lookX, 0.1, lookZ)),
+			color, Enum.Material.Neon))
+	end
+	-- (a) the ring road's outer edge (r 98.6, just outside the
+	-- road tiles at r 92.5-97.5, inside the tiki ring at r 100):
+	-- a dashed glow line all the way around the parade.
+	for i = 0, 23 do
+		local a = (i / 24) * math.pi * 2 + 0.1
+		neonStrip(98.6 * math.cos(a), 98.6 * math.sin(a), 0, 0, 9.8, neonCycle[(i % 3) + 1])
+	end
+	-- (b) the plaza rim: a near-continuous glow ring on the ground
+	-- around the plaza disc's base (plaza r 17 at (0, 150)).
+	for i = 0, 13 do
+		local a = (i / 14) * math.pi * 2
+		neonStrip(18.2 * math.cos(a), 150 + 18.2 * math.sin(a), 0, 150, 7.6, neonCycle[(i % 3) + 1])
+	end
+	-- (c) the booths apron front edge (r 128.5, between the
+	-- villagers' apron lane at r 124 and the plot steps at r 130+),
+	-- dashed along the whole south fan the plots occupy.
+	for i = 0, 11 do
+		local a = math.rad(20 + i * (140 / 11))
+		neonStrip(128.5 * math.cos(a), 128.5 * math.sin(a), 0, 0, 12.5, neonCycle[(i % 3) + 1])
+	end
+
+	-- 3. Prop vignettes in the flats, grouped like little supply
+	-- dumps and clearings — never uniform confetti.
+	local function crateCluster(x, z, yaw, c1, c2, c3)
+		local cf = CFrame.new(x, 0, z) * CFrame.Angles(0, yaw, 0)
+		makePart(world, "Crate", Vector3.new(2.4, 2.4, 2.4), cf * CFrame.new(0, 1.2, 0),
+			c1, Enum.Material.Wood)
+		makePart(world, "Crate", Vector3.new(2, 2, 2), cf * CFrame.new(1.8, 1, 1.4),
+			c2, Enum.Material.Wood)
+		makePart(world, "Crate", Vector3.new(1.7, 1.7, 1.7), cf * CFrame.new(0.4, 3.25, 0.2),
+			c3, Enum.Material.Wood)
+		local barrel = makePart(world, "Barrel", Vector3.new(1.7, 2.6, 1.7), cf * CFrame.new(-2.1, 1.3, 1.2),
+			Color3.fromRGB(150, 104, 66), Enum.Material.Wood)
+		barrel.Shape = Enum.PartType.Cylinder
+		local band = makePart(world, "BarrelBand", Vector3.new(1.85, 0.35, 1.85), cf * CFrame.new(-2.1, 1.9, 1.2),
+			Color3.fromRGB(255, 92, 200), Enum.Material.Neon)
+		band.Shape = Enum.PartType.Cylinder
+		band.CanCollide = false
+	end
+	local crateA = { Color3.fromRGB(32, 178, 190), Color3.fromRGB(255, 110, 90), Color3.fromRGB(255, 205, 60) }
+	local crateB = { Color3.fromRGB(255, 150, 60), Color3.fromRGB(90, 200, 255), Color3.fromRGB(140, 230, 90) }
+	crateCluster(88, -52, 0.5, crateA[1], crateA[2], crateA[3]) -- NE inner flat
+	crateCluster(-118, -8, 1.2, crateB[1], crateB[2], crateB[3]) -- west flat, clear of the Fields path
+	crateCluster(155, 65, -0.4, crateA[2], crateA[3], crateA[1]) -- east shore strip
+	crateCluster(-142, -28, 0.9, crateB[2], crateB[3], crateB[1]) -- south of the Fields plateau
+	crateCluster(48, 128, 2.4, crateA[3], crateA[1], crateA[2]) -- between fountain and plaza
+
+	local function rockSapling(x, z, yaw)
+		local cf = CFrame.new(x, 0, z) * CFrame.Angles(0, yaw, 0)
+		makePart(world, "ShoreRock", Vector3.new(2.6, 1.8, 2.4), cf * CFrame.new(0, 0.7, 0)
+			* CFrame.Angles(0.2, 0.6, 0.15), Color3.fromRGB(140, 130, 124), Enum.Material.Slate)
+		makePart(world, "ShoreRock", Vector3.new(1.9, 1.3, 1.7), cf * CFrame.new(2.2, 0.5, 0.8)
+			* CFrame.Angles(0.3, 1.7, 0.2), Color3.fromRGB(196, 130, 110), Enum.Material.Slate)
+		makePart(world, "ShoreRock", Vector3.new(1.5, 1.0, 1.4), cf * CFrame.new(-1.9, 0.4, 0.9)
+			* CFrame.Angles(0.15, 3.1, 0.3), Color3.fromRGB(140, 130, 124), Enum.Material.Slate)
+		-- A palm sapling: one slim trunk, three fronds — the big
+		-- palms' little sibling, cheap at four parts.
+		local top = (cf * CFrame.new(-0.5, 3.1, -2.2)).Position
+		nc(makePart(world, "SaplingTrunk", Vector3.new(0.4, 3.2, 0.4), cf * CFrame.new(-0.5, 1.6, -2.2)
+			* CFrame.Angles(math.rad(6), 0, math.rad(4)), Color3.fromRGB(146, 108, 74), Enum.Material.Wood))
+		for k = 0, 2 do
+			local fyaw = yaw + k * (math.pi * 2 / 3) + 0.5
+			nc(makePart(world, "SaplingFrond", Vector3.new(0.3, 0.15, 2.6),
+				CFrame.new(top + Vector3.new(math.sin(fyaw) * 0.9, 0.15, math.cos(fyaw) * 0.9))
+				* CFrame.Angles(0, fyaw, 0) * CFrame.Angles(math.rad(28), 0, 0),
+				Color3.fromRGB(74, 168, 84), Enum.Material.SmoothPlastic))
+		end
+	end
+	rockSapling(128, -95, 0.8) -- NE shore flat
+	rockSapling(-38, -150, 2.1) -- north shore, beside the coral clearing
+	rockSapling(60, -120, 1.4) -- north flat east of the Rim shelf
+	rockSapling(-175, -5, 2.8) -- far west shore
+
+	local function torchStand(x, z, yaw)
+		local cf = CFrame.new(x, 0, z) * CFrame.Angles(0, yaw, 0)
+		makePart(world, "TikiPost", Vector3.new(0.35, 4.4, 0.35), cf * CFrame.new(0, 2.2, 0),
+			Color3.fromRGB(110, 80, 54), Enum.Material.Wood)
+		local flame = makePart(world, "TikiFlame", Vector3.new(1, 1.25, 1), cf * CFrame.new(0, 4.9, 0),
+			Color3.fromRGB(255, 160, 50), Enum.Material.Neon)
+		flame.Shape = Enum.PartType.Ball
+		flame.CanCollide = false
+		makePart(world, "Crate", Vector3.new(1.7, 1.7, 1.7), cf * CFrame.new(2.2, 0.85, 0.6),
+			Color3.fromRGB(32, 178, 190), Enum.Material.Wood)
+		local barrel = makePart(world, "Barrel", Vector3.new(1.7, 2.6, 1.7), cf * CFrame.new(-2.0, 1.3, 0.4),
+			Color3.fromRGB(150, 104, 66), Enum.Material.Wood)
+		barrel.Shape = Enum.PartType.Cylinder
+	end
+	torchStand(-150, 115, 0.7) -- SW shore flat
+	torchStand(95, -135, 1.9) -- north-east shore flat
+
+	-- 4. Pennant strings across the plaza / market / apron
+	-- sightlines, strung between the existing poles (tops noted
+	-- from BuildSignageLife) plus one new pole east of the market.
+	nc(makePart(world, "PennantPole", Vector3.new(0.35, 9.5, 0.35), CFrame.new(128, 4.75, 62),
+		Color3.fromRGB(110, 80, 54), Enum.Material.Wood))
+	local tip = nc(makePart(world, "PoleTip", Vector3.new(0.5, 0.5, 0.5), CFrame.new(128, 9.75, 62),
+		Color3.fromRGB(255, 220, 130), Enum.Material.Neon))
+	tip.Shape = Enum.PartType.Ball
+	makePennants(world, Vector3.new(21, 10, 142), Vector3.new(60.8, 9.5, 86.8)) -- plaza -> market arc
+	makePennants(world, Vector3.new(-21, 10, 142), Vector3.new(51, 8.5, 192)) -- plaza -> dock mouth
+	makePennants(world, Vector3.new(102.4, 9.5, 27.4), Vector3.new(128, 9.5, 62)) -- market -> east apron
+end
+
+--====================================================================--
 -- Build the island
 --====================================================================--
 
@@ -2157,6 +2321,7 @@ BuildVillagers()
 BuildPalms()
 BuildSkyLayer()
 BuildRimAccess()
+BuildFinalDensity()
 
 --====================================================================--
 -- Player lifecycle: claim a plot, create the State entry, land the
